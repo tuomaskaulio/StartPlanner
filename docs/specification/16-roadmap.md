@@ -86,6 +86,20 @@ Sisältää:
 
 ---
 
+# 16.6.1 v0.5 – Kilpailukäyttö
+
+**Tavoite:** päivittäiset aukot ennen v1.0:aa.
+
+**Tila:** toteutettu sovelluksessa **0.5.0** (PDF ja issue-korjausehdotukset myöhemmin).
+
+Sisältää:
+
+- manuaalinen sarja ↔ rata -kytkentä (AM-aukot tms.)
+- myöhäiset ilmoittautumiset ja kaavion päivitys lukitukset säilyttäen
+- olemassa olevien kaavioajien säilytys `SchedulerService.update()`-kutsulla
+
+---
+
 # 16.7 v1.0 – Tuotantoversio
 
 **Tavoite:** ensimmäinen vakaa julkaisu kansallisiin kilpailuihin.

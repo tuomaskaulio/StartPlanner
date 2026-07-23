@@ -202,6 +202,29 @@ Ohjelman tavoitteena on pitää lähtevien kilpailijoiden määrä mahdollisimma
 Arvio tehdään **sarjatasolla**: kullakin minuutilla lähtijöitä ≈ 1 / lähtöväli niille sarjoille, joiden kaavio peittää kyseisen minuutin.
 
 Tätä kutsutaan kilpailijavirran optimoinniksi. Se ei edellytä kilpailijakohtaista lähtölistaa.
+
+## Pullonkaularata
+
+Aikataulun kokonaiskesto rajataan **pisimmän radan** (pullonkaula) yhteiskestoon:
+
+1. Laske kullekin radalle sarjojen lähtövirran kesto (kilpailijamäärä × lähtöväli + sarjavälit).
+2. Ajoita pullonkaularadan sarjat ensin (aikataulun selkäranka).
+3. Sijoita muiden ratojen sarjat rinnakkain samaan aikaikkunaan, täyttäen tyhjiä minuutteja.
+
+Jos kaikki sarjat eivät mahdu ikkunaan (esim. 1. rastin kapasiteetti), ikkunaa laajennetaan minimoituina ja käyttäjälle näytetään varoitus `plan.window_overflow`. **Uusi maksimiaika** käytetään sitten tasoituksen rajana: muut radat jaetaan uudelleen tasaisesti laajennettuun ikkunaan.
+
+## Automaattinen tavoitekuorma ja vaiheistus
+
+Tavoitekuorma lasketaan jakamalla kaikki lähtijät aikaikkunan minuuttien
+määrällä. Sijoitus minimoi minuuttikuorman poikkeamaa tästä tavoitearvosta ja
+välttää samalla huippukuormia sekä tyhjiä minuutteja.
+
+Kahden minuutin lähtövälillä pitkän sarjan aloitus valitsee automaattisesti
+parillisen tai parittoman minuuttivaiheen. Vaihe valitaan koko sarjan
+lähtövirran perusteella, jotta rinnakkaiset sarjat täydentävät toisiaan.
+
+Jos aikaikkuna pitenee, tavoitekuorma lasketaan uudelleen uuden maksimin
+perusteella ennen lukitsemattomien sarjojen viimeistä tasoituskierrosta.
 ---
 
 # 3.10 Rajoitteiden prioriteetti

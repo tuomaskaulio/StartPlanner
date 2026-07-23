@@ -1,4 +1,4 @@
-"""PySide6 main window for ClassStartPlan workflow (v0.4)."""
+"""PySide6 main window for ClassStartPlan workflow (v0.5)."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from PySide6.QtCore import Qt, QTime
+from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -32,8 +33,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from startplanner.gui.course_grid import build_course_grid
 from startplanner.domain import ClassStart, ClassStartPlan, Competition, StartLocation
 from startplanner.domain.errors import ScheduleError, StartPlannerError
+from startplanner.services.class_service import ClassService
 from startplanner.services.competition_service import CompetitionService
 from startplanner.services.history_service import HistoryService
 from startplanner.services.import_service import ExportService, ImportService
@@ -79,13 +82,14 @@ class SettingsDialog(QDialog):
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("StartPlanner 0.4")
+        self.setWindowTitle("StartPlanner 0.5")
         self.resize(1200, 750)
 
         self._competition = Competition(name="Uusi kilpailu")
         self._competition.ensure_default_start_location()
         self._active_location_id = next(iter(self._competition.start_locations))
         self._project_path: Path | None = None
+        self._class_service = ClassService()
         self._competition_service = CompetitionService()
         self._import_service = ImportService()
         self._export_service = ExportService()
@@ -118,6 +122,7 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
         file_menu.addAction("Tuo CourseData…", self._import_coursedata)
         file_menu.addAction("Tuo ilmoittautumiset…", self._import_entries)
+        file_menu.addAction("Tuo myöhäiset ilmoittautumiset…", self._import_late_entries)
         file_menu.addSeparator()
         file_menu.addAction("Vie Excel…", self._export_excel)
         file_menu.addAction("Vie CSV…", self._export_csv)
@@ -132,6 +137,7 @@ class MainWindow(QMainWindow):
 
         schedule_menu = menu.addMenu("Lähtökaavio")
         schedule_menu.addAction("Muodosta lähtökaavio (aktiivinen lähtö)", self._build_schedule)
+        schedule_menu.addAction("Päivitä lähtökaavio (aktiivinen lähtö)", self._update_schedule)
         schedule_menu.addAction("Optimoi (aktiivinen lähtö)", self._optimize)
         schedule_menu.addAction("Validoi", self._validate)
         schedule_menu.addSeparator()
@@ -167,12 +173,14 @@ class MainWindow(QMainWindow):
         self._plan_table.customContextMenuRequested.connect(self._plan_context_menu)
         self._plan_table.cellDoubleClicked.connect(self._plan_double_clicked)
         self._timeline_table = QTableWidget()
+        self._grid_table = QTableWidget()
         self._issues_table = QTableWidget()
         self._tabs.addTab(self._classes_table, "Sarjat")
         self._tabs.addTab(self._courses_table, "Radat")
         self._tabs.addTab(self._competitors_table, "Kilpailijat")
         self._tabs.addTab(self._plan_table, "Lähtökaavio")
         self._tabs.addTab(self._timeline_table, "Aikajana")
+        self._tabs.addTab(self._grid_table, "Ruudukko")
         self._tabs.addTab(self._issues_table, "Issues")
         right_layout.addWidget(self._tabs)
         splitter.addWidget(right)
@@ -248,17 +256,60 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Tuontivirhe", str(exc))
 
     def _import_entries(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Tuo ilmoittautumiset", "", "CSV (*.csv);;All (*)"
-        )
+        self._import_entries_file(late=False)
+
+    def _import_late_entries(self) -> None:
+        self._import_entries_file(late=True)
+
+    def _import_entries_file(self, *, late: bool) -> None:
+        title = "Tuo myöhäiset ilmoittautumiset" if late else "Tuo ilmoittautumiset"
+        path, _ = QFileDialog.getOpenFileName(self, title, "", "CSV (*.csv);;All (*)")
         if not path:
             return
         try:
+            had_plan = bool(self._competition.plans)
+            before = len(self._competition.competitors)
             n = self._import_service.import_entries(self._competition, path)
             self._refresh_all()
             self._status.showMessage(f"Tuotu {n} kilpailijaa", 4000)
+            if had_plan and len(self._competition.competitors) > before:
+                reply = QMessageBox.question(
+                    self,
+                    "Päivitä lähtökaavio",
+                    "Ilmoittautumiset muuttuivat. Päivitetäänkö lähtökaavio?\n"
+                    "Kaaviossa jo olevat sarjojen ajat säilyvät.",
+                    QMessageBox.Yes | QMessageBox.No,
+                )
+                if reply == QMessageBox.Yes:
+                    self._update_schedule(quiet=True)
         except StartPlannerError as exc:
             QMessageBox.critical(self, "Tuontivirhe", str(exc))
+
+    def _update_schedule(self, *, quiet: bool = False) -> None:
+        if not self._competition.plan_for(self._active_location_id):
+            if not quiet:
+                QMessageBox.information(
+                    self, "Päivitä", "Muodosta ensin lähtökaavio tälle lähdölle."
+                )
+            return
+        try:
+            before_n = len(self._competition.plan_for(self._active_location_id) or [])
+            plan = self._scheduler.update(self._competition, self._active_location_id)
+            self._record_plan("Päivitä kaavio")
+            self._refresh_all()
+            if not quiet:
+                self._tabs.setCurrentWidget(self._plan_table)
+            score = self._quality.score(self._competition, self._active_location_id)
+            self._status.showMessage(
+                f"Kaavio päivitetty: {before_n} → {len(plan)} sarjaa · laatu {score.as_text()}",
+                5000,
+            )
+        except ScheduleError as exc:
+            if not quiet:
+                QMessageBox.warning(self, "Ei voida päivittää", str(exc))
+        except StartPlannerError as exc:
+            if not quiet:
+                QMessageBox.critical(self, "Virhe", str(exc))
 
     def _build_schedule(self) -> None:
         try:
@@ -481,6 +532,7 @@ class MainWindow(QMainWindow):
             "Kilpailijat": self._competitors_table,
             "Lähtökaavio": self._plan_table,
             "Aikajana": self._timeline_table,
+            "Ruudukko": self._grid_table,
             "Issues": self._issues_table,
         }
         key = item.text(0)
@@ -508,28 +560,7 @@ class MainWindow(QMainWindow):
             self._active_location_id = next(iter(self._competition.start_locations))
         self._refresh_location_combo()
         self._refresh_tree()
-        self._fill_table(
-            self._classes_table,
-            ["Sarja", "Lähtö", "Rata", "Kilpailijoita", "Lähtöväli"],
-            [
-                [
-                    rc.name,
-                    (
-                        self._competition.start_locations[rc.start_location_id].name
-                        if rc.start_location_id in self._competition.start_locations
-                        else "—"
-                    ),
-                    (
-                        self._competition.courses[rc.course_id].name
-                        if rc.course_id in self._competition.courses
-                        else "—"
-                    ),
-                    str(self._competition.competitor_count(rc.id)),
-                    str(rc.start_interval_min),
-                ]
-                for rc in sorted(self._competition.classes.values(), key=lambda c: c.name)
-            ],
-        )
+        self._refresh_classes_table()
         self._fill_table(
             self._courses_table,
             ["Rata", "Pituus (m)", "Nousu", "1. rasti", "Rasteja"],
@@ -566,6 +597,79 @@ class MainWindow(QMainWindow):
         self._refresh_issues()
         self._update_history_actions()
 
+    def _refresh_classes_table(self) -> None:
+        headers = ["Sarja", "Lähtö", "Rata", "Kilpailijoita", "Lähtöväli"]
+        classes = sorted(self._competition.classes.values(), key=lambda c: c.name)
+        self._classes_table.clear()
+        self._classes_table.setColumnCount(len(headers))
+        self._classes_table.setHorizontalHeaderLabels(headers)
+        self._classes_table.setRowCount(len(classes))
+        missing_bg = QBrush(QColor(255, 230, 230))
+        readonly = Qt.ItemIsSelectable | Qt.ItemIsEnabled
+
+        for row, rc in enumerate(classes):
+            missing = not rc.course_id or rc.course_id not in self._competition.courses
+            name_item = QTableWidgetItem(rc.name)
+            name_item.setData(Qt.UserRole, rc.id)
+            name_item.setFlags(readonly)
+            if missing:
+                name_item.setBackground(missing_bg)
+            self._classes_table.setItem(row, 0, name_item)
+
+            loc_name = (
+                self._competition.start_locations[rc.start_location_id].name
+                if rc.start_location_id in self._competition.start_locations
+                else "—"
+            )
+            loc_item = QTableWidgetItem(loc_name)
+            loc_item.setFlags(readonly)
+            if missing:
+                loc_item.setBackground(missing_bg)
+            self._classes_table.setItem(row, 1, loc_item)
+
+            combo = QComboBox()
+            combo.blockSignals(True)
+            combo.addItem("—", None)
+            for course in sorted(
+                self._competition.courses.values(), key=lambda c: c.name
+            ):
+                combo.addItem(course.name, course.id)
+            if rc.course_id:
+                idx = combo.findData(rc.course_id)
+                if idx >= 0:
+                    combo.setCurrentIndex(idx)
+            combo.blockSignals(False)
+            combo.currentIndexChanged.connect(
+                lambda _idx, class_id=rc.id, cb=combo: self._on_class_course_changed(
+                    class_id, cb
+                )
+            )
+            self._classes_table.setCellWidget(row, 2, combo)
+
+            for col, value in (
+                (3, str(self._competition.competitor_count(rc.id))),
+                (4, str(rc.start_interval_min)),
+            ):
+                item = QTableWidgetItem(value)
+                item.setFlags(readonly)
+                if missing:
+                    item.setBackground(missing_bg)
+                self._classes_table.setItem(row, col, item)
+
+        self._classes_table.resizeColumnsToContents()
+
+    def _on_class_course_changed(self, class_id: str, combo: QComboBox) -> None:
+        course_id = combo.currentData()
+        try:
+            self._class_service.assign_course(self._competition, class_id, course_id)
+        except StartPlannerError as exc:
+            QMessageBox.warning(self, "Rata", str(exc))
+            self._refresh_classes_table()
+            return
+        self._refresh_classes_table()
+        self._refresh_issues()
+        self._refresh_plan_and_status()
+
     def _refresh_plan_and_status(self) -> None:
         plan = self._competition.plan_for(self._active_location_id)
         rows: list[list[str]] = []
@@ -590,6 +694,7 @@ class MainWindow(QMainWindow):
             rows,
         )
         self._refresh_timeline(plan)
+        self._refresh_course_grid(plan)
         c = self._competition
         loc = c.start_locations.get(self._active_location_id)
         plan_n = len(plan) if plan else 0
@@ -628,6 +733,47 @@ class MainWindow(QMainWindow):
         ]
         self._fill_table(self._timeline_table, ["Aika", "Sarjat lähdössä"], rows)
 
+    def _refresh_course_grid(self, plan: ClassStartPlan | None) -> None:
+        grid = build_course_grid(self._competition, plan)
+        table = self._grid_table
+        table.clear()
+        if not grid.minutes:
+            table.setColumnCount(2)
+            table.setHorizontalHeaderLabels(["Aika", "Yht"])
+            table.setRowCount(0)
+            return
+
+        headers = ["Aika", "Yht"]
+        for col in grid.columns:
+            fc = col.first_control or "—"
+            headers.append(f"{col.course_name}\n(1. rasti {fc})")
+
+        table.setColumnCount(len(headers))
+        table.setHorizontalHeaderLabels(headers)
+        table.setRowCount(len(grid.minutes))
+
+        readonly = Qt.ItemIsSelectable | Qt.ItemIsEnabled
+        for row, minute in enumerate(grid.minutes):
+            time_item = QTableWidgetItem(minute.strftime("%H:%M"))
+            time_item.setFlags(readonly)
+            table.setItem(row, 0, time_item)
+
+            total_item = QTableWidgetItem(str(grid.total(minute)))
+            total_item.setFlags(readonly)
+            total_item.setTextAlignment(Qt.AlignCenter)
+            table.setItem(row, 1, total_item)
+
+            for col_idx, col in enumerate(grid.columns, start=2):
+                text = grid.cell(minute, col.course_id)
+                item = QTableWidgetItem(text)
+                item.setFlags(readonly)
+                item.setTextAlignment(Qt.AlignCenter)
+                table.setItem(row, col_idx, item)
+
+        table.resizeColumnsToContents()
+        table.horizontalHeader().setStretchLastSection(True)
+        table.verticalHeader().setVisible(False)
+
     def _refresh_issues(self) -> None:
         report = self._validator.validate(
             self._competition,
@@ -650,6 +796,7 @@ class MainWindow(QMainWindow):
             "Kilpailijat",
             "Lähtökaavio",
             "Aikajana",
+            "Ruudukko",
             "Issues",
         ):
             root.addChild(QTreeWidgetItem([label]))

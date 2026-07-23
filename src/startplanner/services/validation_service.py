@@ -233,4 +233,54 @@ class ValidationService:
                         control,
                     )
                 )
+
+        issues.extend(self._window_overflow(competition, plan))
         return issues
+
+    def _window_overflow(
+        self, competition: Competition, plan: ClassStartPlan
+    ) -> list[Issue]:
+        from startplanner.services.scheduler_service import SchedulerService
+
+        classes = [
+            rc
+            for rc in competition.classes_at_location(plan.start_location_id)
+            if rc.course_id
+            and rc.course_id in competition.courses
+            and competition.courses[rc.course_id].first_control
+            and competition.competitor_count(rc.id) > 0
+        ]
+        if not classes:
+            return []
+        scheduler = SchedulerService()
+        durations = scheduler._course_durations(competition, classes)
+        bottleneck_id = scheduler._bottleneck_course_id(competition, durations)
+        if not bottleneck_id or not durations:
+            return []
+        start = competition.competition_start_datetime()
+        window_end = scheduler._schedule_window_end(start, durations)
+        last_start: datetime | None = None
+        for entry in plan.entries:
+            rc = competition.classes.get(entry.class_id)
+            if not rc:
+                continue
+            end = competition.class_span_end(rc, entry.first_start_time)
+            if last_start is None or end > last_start:
+                last_start = end
+        if last_start is None or last_start <= window_end:
+            return []
+        overflow_min = int((last_start - window_end).total_seconds() // 60)
+        if overflow_min <= 0:
+            return []
+        course = competition.courses.get(bottleneck_id)
+        course_name = course.name if course else bottleneck_id
+        return [
+            Issue(
+                "plan.window_overflow",
+                Severity.WARNING,
+                f"Aikataulu ylitti pullonkaularadan keston "
+                f"(rata {course_name}, +{overflow_min} min)",
+                "start_location",
+                plan.start_location_id,
+            )
+        ]
