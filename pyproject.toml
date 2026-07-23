@@ -1,5 +1,37 @@
 [project]
-name="startplanner"
-version="0.1.0"
-requires-python=">=3.12"
-dependencies=["PySide6","lxml"]
+name = "startplanner"
+version = "0.2.0"
+description = "Orienteering start schedule planner"
+requires-python = ">=3.12"
+dependencies = [
+    "PySide6",
+    "lxml",
+    "openpyxl",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+[project.scripts]
+startplanner = "startplanner.main:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
