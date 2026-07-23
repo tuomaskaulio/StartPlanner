@@ -1,0 +1,430 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<CourseData xmlns="http://www.orienteering.org/datastandard/3.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" iofVersion="3.0" createTime="2025-05-18T09:56:30" creator="Condes">
+
+	<Event>
+		<Name>Sample Small Event</Name>
+	</Event>
+
+	<RaceCourseData>
+		<Control type="Control" modifyTime="2025-05-17T21:30:29">
+			<Id>124</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:06:19">
+			<Id>131</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:27:54">
+			<Id>132</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:28:05">
+			<Id>133</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:28:12">
+			<Id>134</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:28:52">
+			<Id>135</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:29:00">
+			<Id>136</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:29:07">
+			<Id>137</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:29:15">
+			<Id>138</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:29:22">
+			<Id>139</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:05:56">
+			<Id>140</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:29:33">
+			<Id>141</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:29:40">
+			<Id>142</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:29:46">
+			<Id>144</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:29:52">
+			<Id>145</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:30:02">
+			<Id>146</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:30:08">
+			<Id>147</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:30:15">
+			<Id>148</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-17T21:30:22">
+			<Id>149</Id>
+			</Control>
+		<Control type="Start" modifyTime="2025-05-16T08:48:55">
+			<Id>L</Id>
+			</Control>
+		<Control type="Finish" modifyTime="2025-05-16T21:17:05">
+			<Id>M</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-16T08:51:56">
+			<Id>RR1</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-16T08:54:00">
+			<Id>RR2</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-16T07:51:10">
+			<Id>RR3</Id>
+			</Control>
+		<Control type="Control" modifyTime="2025-05-16T08:57:02">
+			<Id>RR4</Id>
+			</Control>
+
+		<Course modifyTime="2025-05-18T09:56:05">
+			<Name>HD10</Name>
+			<Length>1500</Length>
+			<Climb>0</Climb>
+			<CourseControl type="Start">
+				<Control>L</Control>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>133</Control>
+				<LegLength>153</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>136</Control>
+				<LegLength>252</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>146</Control>
+				<LegLength>389</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>124</Control>
+				<LegLength>325</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>131</Control>
+				<LegLength>203</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>140</Control>
+				<LegLength>98</LegLength>
+			</CourseControl>
+			<CourseControl type="Finish">
+				<Control>M</Control>
+				<LegLength>76</LegLength>
+			</CourseControl>
+		</Course>
+
+		<Course modifyTime="2025-05-18T09:56:05">
+			<Name>HD12</Name>
+			<Length>2000</Length>
+			<Climb>0</Climb>
+			<CourseControl type="Start">
+				<Control>L</Control>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>134</Control>
+				<LegLength>191</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>136</Control>
+				<LegLength>162</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>138</Control>
+				<LegLength>250</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>145</Control>
+				<LegLength>361</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>147</Control>
+				<LegLength>333</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>124</Control>
+				<LegLength>318</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>131</Control>
+				<LegLength>203</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>140</Control>
+				<LegLength>98</LegLength>
+			</CourseControl>
+			<CourseControl type="Finish">
+				<Control>M</Control>
+				<LegLength>76</LegLength>
+			</CourseControl>
+		</Course>
+
+		<Course modifyTime="2025-05-18T09:56:05">
+			<Name>HD12TR</Name>
+			<Length>1925</Length>
+			<Climb>0</Climb>
+			<CourseControl type="Start">
+				<Control>L</Control>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>134</Control>
+				<LegLength>191</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>136</Control>
+				<LegLength>162</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>137</Control>
+				<LegLength>174</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>146</Control>
+				<LegLength>414</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>149</Control>
+				<LegLength>370</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>131</Control>
+				<LegLength>234</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>140</Control>
+				<LegLength>98</LegLength>
+			</CourseControl>
+			<CourseControl type="Finish">
+				<Control>M</Control>
+				<LegLength>76</LegLength>
+			</CourseControl>
+		</Course>
+
+		<Course modifyTime="2025-05-18T09:56:05">
+			<Name>HD14</Name>
+			<Length>2350</Length>
+			<Climb>0</Climb>
+			<CourseControl type="Start">
+				<Control>L</Control>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>132</Control>
+				<LegLength>199</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>135</Control>
+				<LegLength>163</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>138</Control>
+				<LegLength>383</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>139</Control>
+				<LegLength>144</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>144</Control>
+				<LegLength>297</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>147</Control>
+				<LegLength>477</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>149</Control>
+				<LegLength>286</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>131</Control>
+				<LegLength>234</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>140</Control>
+				<LegLength>98</LegLength>
+			</CourseControl>
+			<CourseControl type="Finish">
+				<Control>M</Control>
+				<LegLength>76</LegLength>
+			</CourseControl>
+		</Course>
+
+		<Course modifyTime="2025-05-18T09:56:05">
+			<Name>HD15-18</Name>
+			<Length>2600</Length>
+			<Climb>0</Climb>
+			<CourseControl type="Start">
+				<Control>L</Control>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>135</Control>
+				<LegLength>184</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>138</Control>
+				<LegLength>383</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>139</Control>
+				<LegLength>144</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>141</Control>
+				<LegLength>257</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>142</Control>
+				<LegLength>218</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>144</Control>
+				<LegLength>242</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>145</Control>
+				<LegLength>177</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>148</Control>
+				<LegLength>485</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>149</Control>
+				<LegLength>105</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>131</Control>
+				<LegLength>234</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>140</Control>
+				<LegLength>98</LegLength>
+			</CourseControl>
+			<CourseControl type="Finish">
+				<Control>M</Control>
+				<LegLength>76</LegLength>
+			</CourseControl>
+		</Course>
+
+		<Course modifyTime="2025-05-18T09:56:05">
+			<Name>HDRR</Name>
+			<Length>1925</Length>
+			<Climb>0</Climb>
+			<CourseControl type="Start">
+				<Control>L</Control>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>RR1</Control>
+				<LegLength>264</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>RR2</Control>
+				<LegLength>132</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>RR3</Control>
+				<LegLength>384</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>RR4</Control>
+				<LegLength>434</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>131</Control>
+				<LegLength>120</LegLength>
+			</CourseControl>
+			<CourseControl type="Control">
+				<Control>140</Control>
+				<LegLength>98</LegLength>
+			</CourseControl>
+			<CourseControl type="Finish">
+				<Control>M</Control>
+				<LegLength>76</LegLength>
+			</CourseControl>
+		</Course>
+
+
+		<ClassCourseAssignment>
+			<ClassName>D10</ClassName>
+			<CourseName>HD10</CourseName>
+		</ClassCourseAssignment>
+
+		<ClassCourseAssignment>
+			<ClassName>H10</ClassName>
+			<CourseName>HD10</CourseName>
+		</ClassCourseAssignment>
+
+
+		<ClassCourseAssignment>
+			<ClassName>D12</ClassName>
+			<CourseName>HD12</CourseName>
+		</ClassCourseAssignment>
+
+		<ClassCourseAssignment>
+			<ClassName>H12</ClassName>
+			<CourseName>HD12</CourseName>
+		</ClassCourseAssignment>
+
+
+		<ClassCourseAssignment>
+			<ClassName>D12TR</ClassName>
+			<CourseName>HD12TR</CourseName>
+		</ClassCourseAssignment>
+
+		<ClassCourseAssignment>
+			<ClassName>H12TR</ClassName>
+			<CourseName>HD12TR</CourseName>
+		</ClassCourseAssignment>
+
+
+		<ClassCourseAssignment>
+			<ClassName>D14</ClassName>
+			<CourseName>HD14</CourseName>
+		</ClassCourseAssignment>
+
+		<ClassCourseAssignment>
+			<ClassName>H14</ClassName>
+			<CourseName>HD14</CourseName>
+		</ClassCourseAssignment>
+
+
+		<ClassCourseAssignment>
+			<ClassName>D15-18</ClassName>
+			<CourseName>HD15-18</CourseName>
+		</ClassCourseAssignment>
+
+		<ClassCourseAssignment>
+			<ClassName>H15-18</ClassName>
+			<CourseName>HD15-18</CourseName>
+		</ClassCourseAssignment>
+
+
+		<ClassCourseAssignment>
+			<ClassName>D10RR</ClassName>
+			<CourseName>HDRR</CourseName>
+		</ClassCourseAssignment>
+
+		<ClassCourseAssignment>
+			<ClassName>D8RR</ClassName>
+			<CourseName>HDRR</CourseName>
+		</ClassCourseAssignment>
+
+		<ClassCourseAssignment>
+			<ClassName>H10RR</ClassName>
+			<CourseName>HDRR</CourseName>
+		</ClassCourseAssignment>
+
+		<ClassCourseAssignment>
+			<ClassName>H8RR</ClassName>
+			<CourseName>HDRR</CourseName>
+		</ClassCourseAssignment>
+
+
+	</RaceCourseData>
+
+</CourseData>
