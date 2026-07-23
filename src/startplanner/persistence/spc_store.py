@@ -115,9 +115,15 @@ class SpcStore:
 
     def _write(self, conn: sqlite3.Connection, competition: Competition) -> None:
         now = datetime.now().isoformat(timespec="seconds")
+        from startplanner import __version__ as app_version
+
         conn.execute(
             "INSERT INTO metadata(key, value) VALUES (?, ?)",
             ("project_version", self.PROJECT_VERSION),
+        )
+        conn.execute(
+            "INSERT INTO metadata(key, value) VALUES (?, ?)",
+            ("app_version", app_version),
         )
         conn.execute(
             "INSERT INTO metadata(key, value) VALUES (?, ?)",
@@ -126,6 +132,10 @@ class SpcStore:
         conn.execute(
             "INSERT INTO metadata(key, value) VALUES (?, ?)",
             ("modified", now),
+        )
+        conn.execute(
+            "INSERT INTO metadata(key, value) VALUES (?, ?)",
+            ("created", now),
         )
         settings = {
             "default_start_interval_min": competition.settings.default_start_interval_min,

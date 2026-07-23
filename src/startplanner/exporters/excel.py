@@ -56,12 +56,51 @@ class ExcelExporter:
         path: str | Path,
         start_location_id: str | None = None,
     ) -> None:
+        from startplanner.services.quality_service import QualityService
+
         wb = Workbook()
         ws = wb.active
         ws.title = "Lähtökaavio"
         for r_idx, row in enumerate(_plan_rows(competition, start_location_id), start=1):
             for c_idx, value in enumerate(row, start=1):
                 ws.cell(row=r_idx, column=c_idx, value=value)
+
+        summary = wb.create_sheet("Yhteenveto")
+        summary.append(["Kilpailu", competition.name])
+        summary.append(
+            [
+                "Kilpailun alku",
+                competition.settings.competition_start.strftime("%H:%M"),
+            ]
+        )
+        summary.append(["Oletusväli (min)", competition.settings.default_start_interval_min])
+        summary.append(["Sarjaväli (min)", competition.settings.class_gap_min])
+        summary.append([])
+        summary.append(
+            ["Lähtö", "Laatu", "Säännöt", "1. rastit", "Virtaus", "Järjestys", "Välit"]
+        )
+        quality = QualityService()
+        loc_ids = (
+            [start_location_id]
+            if start_location_id
+            else sorted(competition.start_locations.keys())
+        )
+        for loc_id in loc_ids:
+            if not competition.plan_for(loc_id):
+                continue
+            loc = competition.start_locations.get(loc_id)
+            score = quality.score(competition, loc_id)
+            summary.append(
+                [
+                    loc.name if loc else loc_id,
+                    score.total,
+                    score.rules,
+                    score.first_controls,
+                    score.flow,
+                    score.order,
+                    score.gaps,
+                ]
+            )
         wb.save(path)
 
 

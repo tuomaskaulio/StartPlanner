@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+- Laatupisteet (0–100) ja kevyt optimoija lähtökaaviolle
+- Undo / Redo kaavion muutoksille
+- Aikajanavälilehti; sarjan siirto ja lukitus kaaviosta
+- Kilpailun asetukset (lähtöväli, sarjaväli, aloitusaika)
+- Excel-vientiin Yhteenveto-välilehti laatupisteineen
+
 ## 0.3.0
 
 - `StartLocation` ja lähdöittäinen `ClassStartPlan` (sarja + 1. lähtöaika)

@@ -73,13 +73,15 @@ Sisältää:
 
 **Tavoite:** päivittäiseen kilpailutyöhön sopiva hiominen.
 
+**Tila:** toteutettu sovelluksessa **0.4.0** (PDF-vienti ja käyttäjäkohtaiset asetukset jäävät myöhempään hiomiseen).
+
 Sisältää:
 
 - optimointimoottori / laatupisteet
 - aikajananäkymä
 - Undo / Redo
-- viennin viimeistely (PDF yms.)
-- asetukset (kilpailu / käyttäjä)
+- viennin viimeistely (Excel-yhteenveto; PDF myöhemmin)
+- asetukset (kilpailu; käyttäjäasetukset myöhemmin)
 - `.spc` tuotantokelpoisena migraatioineen
 
 ---
