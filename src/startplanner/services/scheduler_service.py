@@ -1,110 +1,121 @@
-"""Greedy deterministic start schedule builder."""
+"""Greedy deterministic ClassStartPlan builder (per StartLocation)."""
 
 from __future__ import annotations
 
 from datetime import datetime, timedelta
 from uuid import uuid4
 
-from startplanner.domain import Competition, Competitor, RaceClass, Start, StartSchedule
+from startplanner.domain import (
+    ClassStart,
+    ClassStartPlan,
+    Competition,
+    RaceClass,
+)
 from startplanner.domain.errors import ScheduleError
 
 
 class SchedulerService:
-    def build(self, competition: Competition) -> StartSchedule:
-        self._validate_input(competition)
-        classes = self._ordered_classes(competition)
+    def build(
+        self, competition: Competition, start_location_id: str | None = None
+    ) -> ClassStartPlan:
+        location_id = self._resolve_location(competition, start_location_id)
+        classes = self._ordered_classes(competition, location_id)
+        if not classes:
+            raise ScheduleError(
+                "Ei sijoitettavia sarjoja tässä lähdössä (rata ja kilpailijat puuttuvat)"
+            )
+
         cursor = competition.competition_start_datetime()
-        # first_control -> set of occupied minutes (as datetime minute)
         occupied: dict[str, set[datetime]] = {}
-        # course_id -> end time of last placed class on that course
         course_end: dict[str, datetime] = {}
-        starts: list[Start] = []
-        start_number = 1
+        entries: list[ClassStart] = []
         gap = timedelta(minutes=competition.settings.class_gap_min)
 
+        existing = competition.plan_for(location_id)
+        locked_times: dict[str, datetime] = {}
+        if existing:
+            for entry in existing.entries:
+                rc = competition.classes.get(entry.class_id)
+                if rc and (rc.locked or entry.locked):
+                    locked_times[entry.class_id] = entry.first_start_time
+
         for rc in classes:
-            competitors = self._ordered_competitors(competition, rc)
-            if not competitors:
-                continue
+            n = max(competition.competitor_count(rc.id), 1)
             course = competition.course_for_class(rc)
-            assert course is not None
-            first = course.first_control
-            assert first is not None
+            assert course is not None and course.first_control
+            first_control = course.first_control
 
-            earliest = cursor
-            if rc.course_id in course_end:
-                earliest = max(earliest, course_end[rc.course_id] + gap)
-
-            placement = self._find_placement(
-                earliest=earliest,
-                count=len(competitors),
-                interval_min=rc.start_interval_min,
-                first_control=first,
-                occupied=occupied,
-            )
-            for i, competitor in enumerate(competitors):
-                t = placement + timedelta(minutes=i * rc.start_interval_min)
-                starts.append(
-                    Start(
-                        id=str(uuid4()),
-                        competitor_id=competitor.id,
-                        class_id=rc.id,
-                        course_id=course.id,
-                        start_time=t,
-                        start_number=start_number,
-                    )
+            if rc.id in locked_times:
+                placement = locked_times[rc.id]
+            else:
+                earliest = cursor
+                if rc.course_id in course_end:
+                    earliest = max(earliest, course_end[rc.course_id] + gap)
+                placement = self._find_placement(
+                    earliest=earliest,
+                    count=n,
+                    interval_min=rc.start_interval_min,
+                    first_control=first_control,
+                    occupied=occupied,
                 )
-                start_number += 1
-                occupied.setdefault(first, set()).add(t.replace(second=0, microsecond=0))
 
-            last_time = placement + timedelta(
-                minutes=(len(competitors) - 1) * rc.start_interval_min
+            entries.append(
+                ClassStart(
+                    id=str(uuid4()),
+                    class_id=rc.id,
+                    first_start_time=placement,
+                    locked=rc.locked or rc.id in locked_times,
+                )
             )
-            course_end[course.id] = last_time
-            cursor = last_time + gap
+            for i in range(n):
+                slot = (placement + timedelta(minutes=i * rc.start_interval_min)).replace(
+                    second=0, microsecond=0
+                )
+                occupied.setdefault(first_control, set()).add(slot)
 
-        return StartSchedule(starts=starts)
+            last_time = competition.class_span_end(rc, placement)
+            if rc.course_id:
+                course_end[rc.course_id] = last_time
+            if rc.id not in locked_times:
+                cursor = last_time + gap
 
-    def apply(self, competition: Competition) -> StartSchedule:
-        schedule = self.build(competition)
-        competition.schedule = schedule
-        return schedule
+        return ClassStartPlan(start_location_id=location_id, entries=entries)
 
-    def _validate_input(self, competition: Competition) -> None:
-        schedulable = [
-            rc
-            for rc in competition.classes.values()
-            if rc.course_id
-            and rc.course_id in competition.courses
-            and competition.courses[rc.course_id].first_control
-            and competition.competitors_in_class(rc.id)
-        ]
-        if not schedulable:
-            raise ScheduleError("Ei sijoitettavia sarjoja (rata ja kilpailijat puuttuvat)")
+    def apply(
+        self, competition: Competition, start_location_id: str | None = None
+    ) -> ClassStartPlan:
+        plan = self.build(competition, start_location_id)
+        competition.set_plan(plan)
+        return plan
 
-    def _ordered_classes(self, competition: Competition) -> list[RaceClass]:
+    def _resolve_location(
+        self, competition: Competition, start_location_id: str | None
+    ) -> str:
+        competition.ensure_default_start_location()
+        if start_location_id:
+            if start_location_id not in competition.start_locations:
+                raise ScheduleError(f"Tuntematon lähtö: {start_location_id}")
+            return start_location_id
+        return next(iter(competition.start_locations))
+
+    def _ordered_classes(
+        self, competition: Competition, start_location_id: str
+    ) -> list[RaceClass]:
         classes = [
             rc
-            for rc in competition.classes.values()
+            for rc in competition.classes_at_location(start_location_id)
             if rc.course_id
             and rc.course_id in competition.courses
             and competition.courses[rc.course_id].first_control
-            and competition.competitors_in_class(rc.id)
+            and competition.competitor_count(rc.id) > 0
         ]
 
         def sort_key(rc: RaceClass) -> tuple:
             course = competition.course_for_class(rc)
             length = course.length_m if course else 0
-            # Faster/longer first: higher estimated_speed, then longer course, then name
             return (-rc.estimated_speed, -length, rc.sort_order, rc.name)
 
         return sorted(classes, key=sort_key)
-
-    def _ordered_competitors(
-        self, competition: Competition, rc: RaceClass
-    ) -> list[Competitor]:
-        comps = competition.competitors_in_class(rc.id)
-        return sorted(comps, key=lambda c: (c.last_name, c.first_name, c.id))
 
     def _find_placement(
         self,

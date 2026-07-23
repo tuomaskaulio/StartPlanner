@@ -9,13 +9,15 @@ from pathlib import Path
 from uuid import uuid4
 
 from startplanner.domain import (
+    DEFAULT_START_LOCATION_ID,
+    ClassStart,
+    ClassStartPlan,
     Competition,
     Competitor,
     Course,
     RaceClass,
     Settings,
-    Start,
-    StartSchedule,
+    StartLocation,
 )
 from startplanner.domain.errors import PersistenceError
 
@@ -29,6 +31,10 @@ CREATE TABLE IF NOT EXISTS competition (
     name TEXT NOT NULL,
     event_date TEXT,
     settings_json TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS start_locations (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS courses (
     id TEXT PRIMARY KEY,
@@ -46,6 +52,7 @@ CREATE TABLE IF NOT EXISTS classes (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     course_id TEXT,
+    start_location_id TEXT,
     start_interval_min INTEGER NOT NULL,
     estimated_speed REAL NOT NULL,
     sort_order INTEGER NOT NULL,
@@ -61,13 +68,11 @@ CREATE TABLE IF NOT EXISTS competitors (
     birth_year INTEGER,
     locked INTEGER NOT NULL
 );
-CREATE TABLE IF NOT EXISTS starts (
+CREATE TABLE IF NOT EXISTS class_starts (
     id TEXT PRIMARY KEY,
-    competitor_id TEXT NOT NULL,
+    start_location_id TEXT NOT NULL,
     class_id TEXT NOT NULL,
-    course_id TEXT NOT NULL,
-    start_time TEXT NOT NULL,
-    start_number INTEGER NOT NULL,
+    first_start_time TEXT NOT NULL,
     locked INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS class_course_map (
@@ -78,7 +83,7 @@ CREATE TABLE IF NOT EXISTS class_course_map (
 
 
 class SpcStore:
-    PROJECT_VERSION = "1"
+    PROJECT_VERSION = "2"
 
     def save(self, competition: Competition, path: str | Path) -> None:
         p = Path(path)
@@ -136,6 +141,12 @@ class SpcStore:
                 json.dumps(settings),
             ),
         )
+        competition.ensure_default_start_location()
+        for loc in competition.start_locations.values():
+            conn.execute(
+                "INSERT INTO start_locations(id, name) VALUES (?, ?)",
+                (loc.id, loc.name),
+            )
         for course in competition.courses.values():
             conn.execute(
                 "INSERT INTO courses(id, name, length_m, climb_m) VALUES (?, ?, ?, ?)",
@@ -148,12 +159,14 @@ class SpcStore:
                 )
         for rc in competition.classes.values():
             conn.execute(
-                "INSERT INTO classes(id, name, course_id, start_interval_min, "
-                "estimated_speed, sort_order, locked) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO classes(id, name, course_id, start_location_id, "
+                "start_interval_min, estimated_speed, sort_order, locked) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     rc.id,
                     rc.name,
                     rc.course_id,
+                    rc.start_location_id,
                     rc.start_interval_min,
                     rc.estimated_speed,
                     rc.sort_order,
@@ -175,20 +188,19 @@ class SpcStore:
                     int(comp.locked),
                 ),
             )
-        for start in competition.schedule.starts:
-            conn.execute(
-                "INSERT INTO starts(id, competitor_id, class_id, course_id, "
-                "start_time, start_number, locked) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (
-                    start.id,
-                    start.competitor_id,
-                    start.class_id,
-                    start.course_id,
-                    start.start_time.isoformat(timespec="seconds"),
-                    start.start_number,
-                    int(start.locked),
-                ),
-            )
+        for plan in competition.plans.values():
+            for entry in plan.entries:
+                conn.execute(
+                    "INSERT INTO class_starts(id, start_location_id, class_id, "
+                    "first_start_time, locked) VALUES (?, ?, ?, ?, ?)",
+                    (
+                        entry.id,
+                        plan.start_location_id,
+                        entry.class_id,
+                        entry.first_start_time.isoformat(timespec="seconds"),
+                        int(entry.locked),
+                    ),
+                )
         for class_name, course_id in competition.class_course_map.items():
             conn.execute(
                 "INSERT INTO class_course_map(class_name, course_id) VALUES (?, ?)",
@@ -214,6 +226,17 @@ class SpcStore:
             event_date=date.fromisoformat(row[2]) if row[2] else None,
             settings=settings,
         )
+        tables = {
+            r[0]
+            for r in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
+        if "start_locations" in tables:
+            for r in conn.execute("SELECT id, name FROM start_locations"):
+                competition.add_start_location(StartLocation(id=r[0], name=r[1]))
+        competition.ensure_default_start_location()
+
         for c in conn.execute("SELECT id, name, length_m, climb_m FROM courses"):
             controls = [
                 r[0]
@@ -225,21 +248,49 @@ class SpcStore:
             competition.add_course(
                 Course(id=c[0], name=c[1], length_m=c[2], climb_m=c[3], controls=controls)
             )
-        for r in conn.execute(
-            "SELECT id, name, course_id, start_interval_min, estimated_speed, sort_order, locked "
-            "FROM classes"
-        ):
-            competition.add_class(
-                RaceClass(
-                    id=r[0],
-                    name=r[1],
-                    course_id=r[2],
-                    start_interval_min=r[3],
-                    estimated_speed=r[4],
-                    sort_order=r[5],
-                    locked=bool(r[6]),
-                )
+
+        class_cols = [
+            info[1] for info in conn.execute("PRAGMA table_info(classes)")
+        ]
+        has_loc = "start_location_id" in class_cols
+        if has_loc:
+            class_sql = (
+                "SELECT id, name, course_id, start_location_id, start_interval_min, "
+                "estimated_speed, sort_order, locked FROM classes"
             )
+        else:
+            class_sql = (
+                "SELECT id, name, course_id, start_interval_min, estimated_speed, "
+                "sort_order, locked FROM classes"
+            )
+        for r in conn.execute(class_sql):
+            if has_loc:
+                competition.add_class(
+                    RaceClass(
+                        id=r[0],
+                        name=r[1],
+                        course_id=r[2],
+                        start_location_id=r[3] or DEFAULT_START_LOCATION_ID,
+                        start_interval_min=r[4],
+                        estimated_speed=r[5],
+                        sort_order=r[6],
+                        locked=bool(r[7]),
+                    )
+                )
+            else:
+                competition.add_class(
+                    RaceClass(
+                        id=r[0],
+                        name=r[1],
+                        course_id=r[2],
+                        start_location_id=DEFAULT_START_LOCATION_ID,
+                        start_interval_min=r[3],
+                        estimated_speed=r[4],
+                        sort_order=r[5],
+                        locked=bool(r[6]),
+                    )
+                )
+
         for r in conn.execute(
             "SELECT id, first_name, last_name, club, class_id, emit, birth_year, locked "
             "FROM competitors"
@@ -256,23 +307,50 @@ class SpcStore:
                     locked=bool(r[7]),
                 )
             )
-        starts: list[Start] = []
-        for r in conn.execute(
-            "SELECT id, competitor_id, class_id, course_id, start_time, start_number, locked "
-            "FROM starts"
-        ):
-            starts.append(
-                Start(
-                    id=r[0],
-                    competitor_id=r[1],
-                    class_id=r[2],
-                    course_id=r[3],
-                    start_time=datetime.fromisoformat(r[4]),
-                    start_number=r[5],
-                    locked=bool(r[6]),
+
+        if "class_starts" in tables:
+            by_loc: dict[str, list[ClassStart]] = {}
+            for r in conn.execute(
+                "SELECT id, start_location_id, class_id, first_start_time, locked "
+                "FROM class_starts"
+            ):
+                by_loc.setdefault(r[1], []).append(
+                    ClassStart(
+                        id=r[0],
+                        class_id=r[2],
+                        first_start_time=datetime.fromisoformat(r[3]),
+                        locked=bool(r[4]),
+                    )
                 )
-            )
-        competition.schedule = StartSchedule(starts=starts)
-        for r in conn.execute("SELECT class_name, course_id FROM class_course_map"):
-            competition.class_course_map[r[0]] = r[1]
+            for loc_id, entries in by_loc.items():
+                competition.set_plan(
+                    ClassStartPlan(start_location_id=loc_id, entries=entries)
+                )
+        elif "starts" in tables:
+            # Legacy v0.2 competitor starts → derive ClassStartPlan
+            first_by_class: dict[str, datetime] = {}
+            for r in conn.execute(
+                "SELECT class_id, start_time FROM starts ORDER BY start_time"
+            ):
+                class_id, t = r[0], datetime.fromisoformat(r[1])
+                first_by_class.setdefault(class_id, t)
+            entries = [
+                ClassStart(
+                    id=str(uuid4()),
+                    class_id=cid,
+                    first_start_time=t,
+                )
+                for cid, t in first_by_class.items()
+            ]
+            if entries:
+                competition.set_plan(
+                    ClassStartPlan(
+                        start_location_id=DEFAULT_START_LOCATION_ID,
+                        entries=entries,
+                    )
+                )
+
+        if "class_course_map" in tables:
+            for r in conn.execute("SELECT class_name, course_id FROM class_course_map"):
+                competition.class_course_map[r[0]] = r[1]
         return competition

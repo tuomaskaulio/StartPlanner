@@ -22,10 +22,12 @@ class ImportService:
             competition = self._condes.read(path)
         else:
             self._condes.merge(competition, path)
+        competition.ensure_default_start_location()
         self._link_classes_to_courses(competition)
         return competition
 
     def import_entries(self, competition: Competition, path: str | Path) -> int:
+        competition.ensure_default_start_location()
         return self._irma.apply_to(competition, path)
 
     @staticmethod

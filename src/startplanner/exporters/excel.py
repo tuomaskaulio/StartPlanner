@@ -1,4 +1,4 @@
-"""Excel and CSV exporters for start lists."""
+"""Excel and CSV exporters for ClassStartPlan."""
 
 from __future__ import annotations
 
@@ -10,42 +10,68 @@ from openpyxl import Workbook
 from startplanner.domain import Competition
 
 
-def _rows(competition: Competition) -> list[list[str]]:
-    header = ["Aika", "Sarja", "Kilpailija", "Seura", "Rata", "1. rasti", "Lähtönumero", "Emit"]
+def _plan_rows(competition: Competition, start_location_id: str | None = None) -> list[list[str]]:
+    header = [
+        "Lähtö",
+        "1. lähtöaika",
+        "Sarja",
+        "Kilpailijoita",
+        "Lähtöväli",
+        "Rata",
+        "1. rasti",
+    ]
     rows = [header]
-    for start in competition.schedule.sorted_starts():
-        comp = competition.competitors.get(start.competitor_id)
-        rc = competition.classes.get(start.class_id)
-        course = competition.courses.get(start.course_id)
-        first = course.first_control if course else ""
-        rows.append(
-            [
-                start.start_time.strftime("%H:%M"),
-                rc.name if rc else "",
-                comp.full_name if comp else "",
-                comp.club if comp else "",
-                course.name if course else "",
-                first or "",
-                str(start.start_number),
-                (comp.emit or "") if comp else "",
-            ]
-        )
+    location_ids = (
+        [start_location_id]
+        if start_location_id
+        else sorted(competition.plans.keys())
+    )
+    for loc_id in location_ids:
+        plan = competition.plan_for(loc_id)
+        if not plan:
+            continue
+        loc = competition.start_locations.get(loc_id)
+        loc_name = loc.name if loc else loc_id
+        for entry in plan.sorted_entries():
+            rc = competition.classes.get(entry.class_id)
+            course = competition.course_for_class(rc) if rc else None
+            rows.append(
+                [
+                    loc_name,
+                    entry.first_start_time.strftime("%H:%M"),
+                    rc.name if rc else "",
+                    str(competition.competitor_count(entry.class_id)),
+                    str(rc.start_interval_min if rc else ""),
+                    course.name if course else "",
+                    (course.first_control if course else "") or "",
+                ]
+            )
     return rows
 
 
 class ExcelExporter:
-    def write(self, competition: Competition, path: str | Path) -> None:
+    def write(
+        self,
+        competition: Competition,
+        path: str | Path,
+        start_location_id: str | None = None,
+    ) -> None:
         wb = Workbook()
         ws = wb.active
         ws.title = "Lähtökaavio"
-        for r_idx, row in enumerate(_rows(competition), start=1):
+        for r_idx, row in enumerate(_plan_rows(competition, start_location_id), start=1):
             for c_idx, value in enumerate(row, start=1):
                 ws.cell(row=r_idx, column=c_idx, value=value)
         wb.save(path)
 
 
 class CsvExporter:
-    def write(self, competition: Competition, path: str | Path) -> None:
+    def write(
+        self,
+        competition: Competition,
+        path: str | Path,
+        start_location_id: str | None = None,
+    ) -> None:
         with Path(path).open("w", encoding="utf-8", newline="") as fh:
             writer = csv.writer(fh)
-            writer.writerows(_rows(competition))
+            writer.writerows(_plan_rows(competition, start_location_id))

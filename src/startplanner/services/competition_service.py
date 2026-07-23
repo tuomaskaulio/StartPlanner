@@ -13,7 +13,10 @@ class CompetitionService:
         self._store = SpcStore()
 
     def new_competition(self, name: str = "Uusi kilpailu") -> Competition:
-        return Competition(name=name)
+        competition = Competition(name=name)
+        competition.ensure_default_start_location()
+        return competition
+
 
     def save(self, competition: Competition, path: str | Path) -> None:
         self._store.save(competition, path)

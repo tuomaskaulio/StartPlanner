@@ -1,7 +1,8 @@
-"""Scheduler and import/export E2E tests."""
+"""Scheduler and import/export E2E tests for ClassStartPlan."""
 
 from pathlib import Path
 
+from startplanner.domain import StartLocation
 from startplanner.importers.condes_coursedata import class_tokens_from_course_name
 from startplanner.services.competition_service import CompetitionService
 from startplanner.services.import_service import ExportService, ImportService
@@ -33,21 +34,24 @@ def test_sample_small_import_schedule_validate_export(tmp_path: Path):
     n = imports.import_entries(competition, SAMPLE_SMALL / "ilmoittautumiset.csv")
     assert n == 38
     assert competition.classes
+    assert competition.start_locations
     assert all(rc.course_id for rc in competition.classes.values())
+    assert all(rc.start_location_id for rc in competition.classes.values())
 
-    schedule = SchedulerService().apply(competition)
-    assert len(schedule) == 38
+    plan = SchedulerService().apply(competition)
+    assert len(plan) >= 1
+    assert all(e.first_start_time for e in plan.entries)
 
-    schedule2 = SchedulerService().build(competition)
-    times1 = [(s.competitor_id, s.start_time) for s in schedule.sorted_starts()]
-    times2 = [(s.competitor_id, s.start_time) for s in schedule2.sorted_starts()]
+    plan2 = SchedulerService().build(competition)
+    times1 = [(e.class_id, e.first_start_time) for e in plan.sorted_entries()]
+    times2 = [(e.class_id, e.first_start_time) for e in plan2.sorted_entries()]
     assert times1 == times2
 
-    report = ValidationService().validate(competition, require_schedule=True)
+    report = ValidationService().validate(competition, require_plan=True)
     schedule_errors = [
         i
         for i in report.errors
-        if i.rule_id.startswith("schedule.") or i.rule_id == "class.course"
+        if i.rule_id.startswith("plan.") or i.rule_id in {"class.course", "class.start_location"}
     ]
     assert schedule_errors == [], [i.message for i in schedule_errors]
 
@@ -56,10 +60,9 @@ def test_sample_small_import_schedule_validate_export(tmp_path: Path):
     ExportService().export_excel(competition, xlsx)
     ExportService().export_csv(competition, csv_path)
     assert xlsx.exists() and xlsx.stat().st_size > 0
-    assert csv_path.exists()
     text = csv_path.read_text(encoding="utf-8")
-    assert "Aika" in text
-    assert text.count("\n") >= 38
+    assert "1. lähtöaika" in text
+    assert "Sarja" in text
 
 
 def test_sample_medium_merge_partial_schedule():
@@ -74,19 +77,36 @@ def test_sample_medium_merge_partial_schedule():
     missing_course = [i for i in report_before.errors if i.rule_id == "class.course"]
     assert missing_course, "medium sample should have some classes without course"
 
-    schedule = SchedulerService().apply(competition)
-    assert len(schedule) > 0
-    assert len(schedule) < len(competition.competitors)
+    plan = SchedulerService().apply(competition)
+    assert len(plan) > 0
 
-    report = ValidationService().validate(competition, require_schedule=True)
+    report = ValidationService().validate(competition, require_plan=True)
     assert any(i.rule_id == "class.course" for i in report.errors)
     schedule_hard = [
         i
         for i in report.errors
-        if i.rule_id
-        in {"schedule.first_control", "schedule.interval", "schedule.course_interleave"}
+        if i.rule_id in {"plan.first_control", "plan.course_interleave"}
     ]
     assert schedule_hard == [], [i.message for i in schedule_hard]
+
+
+def test_two_locations_scheduled_independently():
+    imports = ImportService()
+    competition = imports.import_coursedata(_small_xml())
+    imports.import_entries(competition, SAMPLE_SMALL / "ilmoittautumiset.csv")
+    loc2 = StartLocation(id="start:2", name="Lähtö 2")
+    competition.add_start_location(loc2)
+    # Move half the classes to location 2
+    for i, rc in enumerate(sorted(competition.classes.values(), key=lambda x: x.name)):
+        if i % 2 == 1:
+            rc.start_location_id = loc2.id
+
+    plan1 = SchedulerService().apply(competition, "start:default")
+    plan2 = SchedulerService().apply(competition, loc2.id)
+    assert len(plan1) > 0 and len(plan2) > 0
+    assert plan1.start_location_id != plan2.start_location_id
+    report = ValidationService().validate(competition, require_plan=True)
+    assert not any(i.rule_id == "plan.first_control" for i in report.errors)
 
 
 def test_spc_roundtrip(tmp_path: Path):
@@ -101,7 +121,10 @@ def test_spc_roundtrip(tmp_path: Path):
     loaded = svc.load(path)
     assert loaded.name == competition.name
     assert len(loaded.competitors) == len(competition.competitors)
-    assert len(loaded.schedule) == len(competition.schedule)
-    assert loaded.schedule.sorted_starts()[0].start_time == competition.schedule.sorted_starts()[
-        0
-    ].start_time
+    assert loaded.start_locations
+    assert loaded.plans
+    loc_id = next(iter(competition.plans))
+    assert loaded.plan_for(loc_id) is not None
+    assert loaded.plan_for(loc_id).sorted_entries()[0].first_start_time == (
+        competition.plan_for(loc_id).sorted_entries()[0].first_start_time
+    )

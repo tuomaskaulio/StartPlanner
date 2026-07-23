@@ -23,11 +23,11 @@ startplanner
 python -m startplanner.main
 ```
 
-## Tyypillinen työnkulku (v0.2)
+## Tyypillinen työnkulku (v0.3)
 
 1. Tuo IOF CourseData (Condes-export)
 2. Tuo IRMA-ilmoittautumiset (`= ILMOIT` CSV)
-3. Muodosta lähtökaavio
+3. Valitse / lisää lähtö, muodosta lähtökaavio (sarjojen 1. ajat)
 4. Tarkista issues-lista
 5. Vie Exceliin / CSV:hen
 6. Tallenna projekti `.spc`-tiedostoon
@@ -42,4 +42,4 @@ pytest
 
 ## Versio
 
-Nykyinen kehitysversio: **0.2.0** (ensimmäinen käyttökelpoinen).
+Nykyinen kehitysversio: **0.3.0** (lähdöt + lähtökaavio).

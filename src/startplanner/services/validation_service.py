@@ -1,22 +1,47 @@
-"""Validation service — hard scheduling and data-integrity rules."""
+"""Validation service — ClassStartPlan rules per StartLocation."""
 
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from startplanner.domain import Competition, RaceClass
+from startplanner.domain import ClassStartPlan, Competition, RaceClass
 from startplanner.validation.issues import Issue, Severity, ValidationReport
 
 
 class ValidationService:
     def validate(
-        self, competition: Competition, *, require_schedule: bool = False
+        self,
+        competition: Competition,
+        *,
+        start_location_id: str | None = None,
+        require_plan: bool = False,
     ) -> ValidationReport:
         issues: list[Issue] = []
         issues.extend(self._data_integrity(competition))
-        if require_schedule or competition.schedule.starts:
-            issues.extend(self._schedule_rules(competition))
+        locations = (
+            [start_location_id]
+            if start_location_id
+            else list(competition.plans.keys())
+            or list(competition.start_locations.keys())
+        )
+        for loc_id in locations:
+            if not loc_id:
+                continue
+            plan = competition.plan_for(loc_id)
+            if require_plan or plan:
+                if not plan:
+                    issues.append(
+                        Issue(
+                            "plan.missing",
+                            Severity.ERROR,
+                            f"Lähdöltä {loc_id} puuttuu lähtökaavio",
+                            "start_location",
+                            loc_id,
+                        )
+                    )
+                else:
+                    issues.extend(self._plan_rules(competition, plan))
         return ValidationReport(issues)
 
     def _data_integrity(self, competition: Competition) -> list[Issue]:
@@ -24,6 +49,14 @@ class ValidationService:
         if not competition.name.strip():
             issues.append(
                 Issue("competition.name", Severity.ERROR, "Kilpailulta puuttuu nimi")
+            )
+        if not competition.start_locations:
+            issues.append(
+                Issue(
+                    "competition.start_location",
+                    Severity.ERROR,
+                    "Kilpailulta puuttuu lähtö",
+                )
             )
         for course in competition.courses.values():
             if not course.controls:
@@ -53,6 +86,29 @@ class ValidationService:
                         "class.course",
                         Severity.ERROR,
                         f"Sarjan {rc.name} rataa ei löydy",
+                        "class",
+                        rc.id,
+                    )
+                )
+            if not rc.start_location_id:
+                issues.append(
+                    Issue(
+                        "class.start_location",
+                        Severity.ERROR,
+                        f"Sarjalta {rc.name} puuttuu lähtö",
+                        "class",
+                        rc.id,
+                    )
+                )
+            elif (
+                competition.start_locations
+                and rc.start_location_id not in competition.start_locations
+            ):
+                issues.append(
+                    Issue(
+                        "class.start_location",
+                        Severity.ERROR,
+                        f"Sarjan {rc.name} lähtöä ei löydy",
                         "class",
                         rc.id,
                     )
@@ -90,93 +146,49 @@ class ValidationService:
                 )
         return issues
 
-    def _schedule_rules(self, competition: Competition) -> list[Issue]:
+    def _plan_rules(
+        self, competition: Competition, plan: ClassStartPlan
+    ) -> list[Issue]:
         issues: list[Issue] = []
-        starts = competition.schedule.sorted_starts()
-        if not starts:
+        if not plan.entries:
             issues.append(
-                Issue("schedule.empty", Severity.ERROR, "Lähtökaavio on tyhjä")
+                Issue(
+                    "plan.empty",
+                    Severity.ERROR,
+                    "Lähtökaavio on tyhjä",
+                    "start_location",
+                    plan.start_location_id,
+                )
             )
             return issues
 
-        scheduled_competitors = {s.competitor_id for s in starts}
-        for comp in competition.competitors.values():
-            rc = competition.classes.get(comp.class_id)
-            if rc and rc.course_id and comp.id not in scheduled_competitors:
+        by_class = {e.class_id: e for e in plan.entries}
+        for rc in competition.classes_at_location(plan.start_location_id):
+            if (
+                rc.course_id
+                and competition.competitor_count(rc.id) > 0
+                and rc.id not in by_class
+            ):
                 issues.append(
                     Issue(
-                        "schedule.missing_competitor",
+                        "plan.missing_class",
                         Severity.ERROR,
-                        f"Kilpailijalta {comp.full_name} puuttuu lähtöaika",
-                        "competitor",
-                        comp.id,
+                        f"Sarjalta {rc.name} puuttuu ensimmäinen lähtöaika",
+                        "class",
+                        rc.id,
                     )
                 )
 
-        # Per-class start interval
-        by_class: dict[str, list] = defaultdict(list)
-        for start in starts:
-            by_class[start.class_id].append(start)
-        for class_id, class_starts in by_class.items():
-            rc = competition.classes.get(class_id)
-            if not rc:
+        # Course interleave within location
+        by_course: dict[str, list[tuple[RaceClass, datetime, datetime]]] = defaultdict(
+            list
+        )
+        for entry in plan.entries:
+            rc = competition.classes.get(entry.class_id)
+            if not rc or not rc.course_id:
                 continue
-            ordered = sorted(class_starts, key=lambda s: s.start_time)
-            for prev, cur in zip(ordered, ordered[1:]):
-                delta = (cur.start_time - prev.start_time).total_seconds() / 60
-                if delta + 1e-9 < rc.start_interval_min:
-                    issues.append(
-                        Issue(
-                            "schedule.interval",
-                            Severity.ERROR,
-                            f"Sarjan {rc.name} lähtöväli rikkoo "
-                        f"{rc.start_interval_min} min sääntöä",
-                            "class",
-                            rc.id,
-                        )
-                    )
-                    break
-
-        # Same course classes must not interleave
-        issues.extend(self._course_interleave(competition, by_class))
-
-        # First control: max 1 competitor per minute
-        by_minute_control: dict[tuple[str, datetime], list[str]] = defaultdict(list)
-        for start in starts:
-            rc = competition.classes.get(start.class_id)
-            if not rc:
-                continue
-            first = competition.first_control_for_class(rc)
-            if not first:
-                continue
-            minute = start.start_time.replace(second=0, microsecond=0)
-            by_minute_control[(first, minute)].append(start.competitor_id)
-        for (control, minute), competitor_ids in by_minute_control.items():
-            if len(competitor_ids) > 1:
-                issues.append(
-                    Issue(
-                        "schedule.first_control",
-                        Severity.ERROR,
-                        f"Ensimmäinen rasti {control} ylikuormittuu klo {minute.strftime('%H:%M')} "
-                        f"({len(competitor_ids)} kilpailijaa)",
-                        "control",
-                        control,
-                    )
-                )
-
-        return issues
-
-    def _course_interleave(
-        self, competition: Competition, by_class: dict[str, list]
-    ) -> list[Issue]:
-        issues: list[Issue] = []
-        by_course: dict[str, list[tuple[RaceClass, datetime, datetime]]] = defaultdict(list)
-        for class_id, class_starts in by_class.items():
-            rc = competition.classes.get(class_id)
-            if not rc or not rc.course_id or not class_starts:
-                continue
-            times = [s.start_time for s in class_starts]
-            by_course[rc.course_id].append((rc, min(times), max(times)))
+            end = competition.class_span_end(rc, entry.first_start_time)
+            by_course[rc.course_id].append((rc, entry.first_start_time, end))
 
         for course_id, spans in by_course.items():
             course = competition.courses.get(course_id)
@@ -186,11 +198,39 @@ class ValidationService:
                 if b0 <= a1:
                     issues.append(
                         Issue(
-                            "schedule.course_interleave",
+                            "plan.course_interleave",
                             Severity.ERROR,
                             f"Radan {course_name} sarjat {a_rc.name} ja {b_rc.name} limittäin",
                             "course",
                             course_id,
                         )
                     )
+
+        # First control: at most 1 competitor per minute within this location
+        load: dict[tuple[str, datetime], float] = defaultdict(float)
+        for entry in plan.entries:
+            rc = competition.classes.get(entry.class_id)
+            if not rc:
+                continue
+            first = competition.first_control_for_class(rc)
+            if not first:
+                continue
+            n = max(competition.competitor_count(rc.id), 1)
+            for i in range(n):
+                minute = (
+                    entry.first_start_time + timedelta(minutes=i * rc.start_interval_min)
+                ).replace(second=0, microsecond=0)
+                load[(first, minute)] += 1.0
+        for (control, minute), count in load.items():
+            if count > 1 + 1e-9:
+                issues.append(
+                    Issue(
+                        "plan.first_control",
+                        Severity.ERROR,
+                        f"Ensimmäinen rasti {control} ylikuormittuu klo "
+                        f"{minute.strftime('%H:%M')} ({int(count)} kilpailijaa)",
+                        "control",
+                        control,
+                    )
+                )
         return issues

@@ -1,12 +1,16 @@
-"""Minimal PySide6 main window for v0.2 workflow."""
+"""Minimal PySide6 main window for v0.3 ClassStartPlan workflow."""
 
 from __future__ import annotations
 
 from pathlib import Path
+from uuid import uuid4
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QComboBox,
     QFileDialog,
+    QHBoxLayout,
+    QInputDialog,
     QLabel,
     QMainWindow,
     QMessageBox,
@@ -21,7 +25,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from startplanner.domain import Competition
+from startplanner.domain import Competition, StartLocation
 from startplanner.domain.errors import ScheduleError, StartPlannerError
 from startplanner.services.competition_service import CompetitionService
 from startplanner.services.import_service import ExportService, ImportService
@@ -32,10 +36,12 @@ from startplanner.services.validation_service import ValidationService
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("StartPlanner 0.2")
+        self.setWindowTitle("StartPlanner 0.3")
         self.resize(1100, 700)
 
         self._competition = Competition(name="Uusi kilpailu")
+        self._competition.ensure_default_start_location()
+        self._active_location_id = next(iter(self._competition.start_locations))
         self._project_path: Path | None = None
         self._competition_service = CompetitionService()
         self._import_service = ImportService()
@@ -61,8 +67,16 @@ class MainWindow(QMainWindow):
         file_menu.addAction("Vie CSV…", self._export_csv)
 
         schedule_menu = menu.addMenu("Lähtökaavio")
-        schedule_menu.addAction("Muodosta lähtökaavio", self._build_schedule)
+        schedule_menu.addAction("Muodosta lähtökaavio (aktiivinen lähtö)", self._build_schedule)
         schedule_menu.addAction("Validoi", self._validate)
+        schedule_menu.addAction("Lisää lähtö…", self._add_start_location)
+
+        top = QWidget()
+        top_layout = QHBoxLayout(top)
+        top_layout.addWidget(QLabel("Aktiivinen lähtö:"))
+        self._location_combo = QComboBox()
+        self._location_combo.currentIndexChanged.connect(self._on_location_changed)
+        top_layout.addWidget(self._location_combo, stretch=1)
 
         splitter = QSplitter()
         self._tree = QTreeWidget()
@@ -72,16 +86,17 @@ class MainWindow(QMainWindow):
 
         right = QWidget()
         right_layout = QVBoxLayout(right)
+        right_layout.addWidget(top)
         self._tabs = QTabWidget()
         self._classes_table = QTableWidget()
         self._courses_table = QTableWidget()
         self._competitors_table = QTableWidget()
-        self._schedule_table = QTableWidget()
+        self._plan_table = QTableWidget()
         self._issues_table = QTableWidget()
         self._tabs.addTab(self._classes_table, "Sarjat")
         self._tabs.addTab(self._courses_table, "Radat")
         self._tabs.addTab(self._competitors_table, "Kilpailijat")
-        self._tabs.addTab(self._schedule_table, "Lähtökaavio")
+        self._tabs.addTab(self._plan_table, "Lähtökaavio")
         self._tabs.addTab(self._issues_table, "Issues")
         right_layout.addWidget(self._tabs)
         splitter.addWidget(right)
@@ -95,6 +110,8 @@ class MainWindow(QMainWindow):
 
     def _new_project(self) -> None:
         self._competition = Competition(name="Uusi kilpailu")
+        self._competition.ensure_default_start_location()
+        self._active_location_id = next(iter(self._competition.start_locations))
         self._project_path = None
         self._refresh_all()
 
@@ -104,6 +121,8 @@ class MainWindow(QMainWindow):
             return
         try:
             self._competition = self._competition_service.load(path)
+            self._competition.ensure_default_start_location()
+            self._active_location_id = next(iter(self._competition.start_locations))
             self._project_path = Path(path)
             self._refresh_all()
         except StartPlannerError as exc:
@@ -138,6 +157,7 @@ class MainWindow(QMainWindow):
             self._competition = self._import_service.import_coursedata(
                 path, self._competition
             )
+            self._active_location_id = next(iter(self._competition.start_locations))
             self._refresh_all()
             self._status.showMessage(f"CourseData tuotu: {Path(path).name}", 4000)
         except StartPlannerError as exc:
@@ -158,10 +178,11 @@ class MainWindow(QMainWindow):
 
     def _build_schedule(self) -> None:
         try:
-            self._scheduler.apply(self._competition)
+            plan = self._scheduler.apply(self._competition, self._active_location_id)
             self._refresh_all()
+            self._tabs.setCurrentWidget(self._plan_table)
             self._status.showMessage(
-                f"Lähtökaavio: {len(self._competition.schedule)} lähtöä", 4000
+                f"Lähtökaavio: {len(plan)} sarjaa", 4000
             )
         except ScheduleError as exc:
             QMessageBox.warning(self, "Ei voida muodostaa", str(exc))
@@ -171,6 +192,15 @@ class MainWindow(QMainWindow):
     def _validate(self) -> None:
         self._refresh_issues()
         self._tabs.setCurrentWidget(self._issues_table)
+
+    def _add_start_location(self) -> None:
+        name, ok = QInputDialog.getText(self, "Lisää lähtö", "Lähdön nimi:")
+        if not ok or not name.strip():
+            return
+        loc = StartLocation(id=f"start:{uuid4()}", name=name.strip())
+        self._competition.add_start_location(loc)
+        self._active_location_id = loc.id
+        self._refresh_all()
 
     def _export_excel(self) -> None:
         path, _ = QFileDialog.getSaveFileName(self, "Vie Excel", "", "Excel (*.xlsx)")
@@ -196,32 +226,64 @@ class MainWindow(QMainWindow):
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(self, "Vientivirhe", str(exc))
 
+    def _on_location_changed(self, index: int) -> None:
+        if index < 0:
+            return
+        loc_id = self._location_combo.itemData(index)
+        if loc_id:
+            self._active_location_id = loc_id
+            self._refresh_plan_and_status()
+
     def _on_tree_clicked(self, item: QTreeWidgetItem, _col: int) -> None:
         mapping = {
             "Sarjat": self._classes_table,
             "Radat": self._courses_table,
             "Kilpailijat": self._competitors_table,
-            "Lähtökaavio": self._schedule_table,
+            "Lähtökaavio": self._plan_table,
             "Issues": self._issues_table,
         }
         key = item.text(0)
         if key in mapping:
             self._tabs.setCurrentWidget(mapping[key])
 
+    def _refresh_location_combo(self) -> None:
+        self._location_combo.blockSignals(True)
+        self._location_combo.clear()
+        for loc in sorted(
+            self._competition.start_locations.values(), key=lambda x: x.name
+        ):
+            self._location_combo.addItem(loc.name, loc.id)
+        idx = self._location_combo.findData(self._active_location_id)
+        if idx >= 0:
+            self._location_combo.setCurrentIndex(idx)
+        elif self._location_combo.count():
+            self._location_combo.setCurrentIndex(0)
+            self._active_location_id = self._location_combo.currentData()
+        self._location_combo.blockSignals(False)
+
     def _refresh_all(self) -> None:
+        self._competition.ensure_default_start_location()
+        if self._active_location_id not in self._competition.start_locations:
+            self._active_location_id = next(iter(self._competition.start_locations))
+        self._refresh_location_combo()
         self._refresh_tree()
         self._fill_table(
             self._classes_table,
-            ["Sarja", "Rata", "Kilpailijoita", "Lähtöväli"],
+            ["Sarja", "Lähtö", "Rata", "Kilpailijoita", "Lähtöväli"],
             [
                 [
                     rc.name,
+                    (
+                        self._competition.start_locations[rc.start_location_id].name
+                        if rc.start_location_id in self._competition.start_locations
+                        else "—"
+                    ),
                     (
                         self._competition.courses[rc.course_id].name
                         if rc.course_id in self._competition.courses
                         else "—"
                     ),
-                    str(len(self._competition.competitors_in_class(rc.id))),
+                    str(self._competition.competitor_count(rc.id)),
                     str(rc.start_interval_min),
                 ]
                 for rc in sorted(self._competition.classes.values(), key=lambda c: c.name)
@@ -259,44 +321,47 @@ class MainWindow(QMainWindow):
                 )
             ],
         )
-        self._fill_table(
-            self._schedule_table,
-            ["Aika", "Sarja", "Kilpailija", "Rata", "1. rasti", "Nro"],
-            [
-                [
-                    s.start_time.strftime("%H:%M"),
-                    self._competition.classes[s.class_id].name
-                    if s.class_id in self._competition.classes
-                    else "",
-                    self._competition.competitors[s.competitor_id].full_name
-                    if s.competitor_id in self._competition.competitors
-                    else "",
-                    self._competition.courses[s.course_id].name
-                    if s.course_id in self._competition.courses
-                    else "",
-                    (
-                        self._competition.courses[s.course_id].first_control
-                        if s.course_id in self._competition.courses
-                        else ""
-                    )
-                    or "",
-                    str(s.start_number),
-                ]
-                for s in self._competition.schedule.sorted_starts()
-            ],
-        )
+        self._refresh_plan_and_status()
         self._refresh_issues()
+
+    def _refresh_plan_and_status(self) -> None:
+        plan = self._competition.plan_for(self._active_location_id)
+        rows: list[list[str]] = []
+        if plan:
+            for entry in plan.sorted_entries():
+                rc = self._competition.classes.get(entry.class_id)
+                course = self._competition.course_for_class(rc) if rc else None
+                rows.append(
+                    [
+                        entry.first_start_time.strftime("%H:%M"),
+                        rc.name if rc else "",
+                        str(self._competition.competitor_count(entry.class_id)),
+                        str(rc.start_interval_min if rc else ""),
+                        course.name if course else "",
+                        (course.first_control if course else "") or "",
+                        "kyllä" if entry.locked or (rc and rc.locked) else "",
+                    ]
+                )
+        self._fill_table(
+            self._plan_table,
+            ["1. lähtöaika", "Sarja", "Kilpailijoita", "Lähtöväli", "Rata", "1. rasti", "Lukittu"],
+            rows,
+        )
         c = self._competition
+        loc = c.start_locations.get(self._active_location_id)
+        plan_n = len(plan) if plan else 0
         self._status_label.setText(
-            f"{c.name}  |  Sarjoja {len(c.classes)}  |  "
+            f"{c.name}  |  Lähtö: {loc.name if loc else '—'}  |  "
+            f"Sarjoja {len(c.classes)}  |  "
             f"Kilpailijoita {len(c.competitors)}  |  "
-            f"Ratoja {len(c.courses)}  |  "
-            f"Lähtöjä {len(c.schedule)}"
+            f"Kaavion sarjoja {plan_n}"
         )
 
     def _refresh_issues(self) -> None:
         report = self._validator.validate(
-            self._competition, require_schedule=bool(self._competition.schedule.starts)
+            self._competition,
+            start_location_id=self._active_location_id,
+            require_plan=bool(self._competition.plan_for(self._active_location_id)),
         )
         self._fill_table(
             self._issues_table,
@@ -307,7 +372,7 @@ class MainWindow(QMainWindow):
     def _refresh_tree(self) -> None:
         self._tree.clear()
         root = QTreeWidgetItem([self._competition.name or "Kilpailu"])
-        for label in ("Sarjat", "Radat", "Kilpailijat", "Lähtökaavio", "Issues"):
+        for label in ("Lähdöt", "Sarjat", "Radat", "Kilpailijat", "Lähtökaavio", "Issues"):
             root.addChild(QTreeWidgetItem([label]))
         self._tree.addTopLevelItem(root)
         self._tree.expandAll()
