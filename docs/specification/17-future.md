@@ -41,23 +41,34 @@ Aikaleuvojen sisäinen esitys suunnitellaan siten, että sekunnit voidaan ottaa 
 
 ---
 
-# 17.4 Useita lähtöpaikkoja
+# 17.4 Useita lähtöjä
 
-Suurissa kilpailuissa voi olla useita fyysisiä lähtöpaikkoja.
+Useat lähdöt (`StartLocation`) ja lähdöittäinen `ClassStartPlan` kuuluvat **v0.3-domainiin** (ks. domain-malli ja tiekartta).
 
-Tarvittavia laajennuksia:
+Tähän lukuun jäävät mahdolliset myöhemmät laajennukset:
 
-- `StartLocation`-entiteetti
-- sarjan tai radan kytkentä lähtöpaikkaan
-- lähtöpaikkakohtainen kapasiteetti
-- raportit lähtöpaikoittain
-- validointi: kilpailija/sarja oikeassa paikassa
-
-Lähtökaavion ydin algoritmi säilyy: sijainti on lisärajoite, ei erillinen tuote.
+- lähtökohtainen kapasiteetti (muu kuin 1. rasti)
+- erikoisraportit lähtöpaikoittain
+- kartta-/layout-visualisointi lähtöalueista
 
 ---
 
-# 17.5 Pilvitallennus
+# 17.5 Lähtölista ja arvoonta
+
+Yksittäisten kilpailijoiden lähtöajat ja -numerot arvotaan tyypillisesti tulospalveluohjelmassa.
+
+Mahdollisia myöhempiä StartPlanner-ominaisuuksia:
+
+- yksinkertainen listan generointi kaaviosta (järjestys = lähtöväli)
+- arvonnan säännöt / siemen
+- valmiin listan tuonti tulospalvelusta
+- listan vienti takaisin tulospalveluun
+
+Nämä eivät kuulu ydinlupaukseen.
+
+---
+
+# 17.6 Pilvitallennus
 
 Paikallinen `.spc`-tiedosto pysyy ensisijaisena.
 
@@ -76,7 +87,7 @@ Periaatteet:
 
 ---
 
-# 17.6 REST API
+# 17.7 REST API
 
 REST API mahdollistaisi integroinnin muihin järjestelmiin.
 
@@ -93,7 +104,7 @@ Ensimmäinen versio voisi olla vain luku (export/status).
 
 ---
 
-# 17.7 Mobiilituki
+# 17.8 Mobiilituki
 
 Mobiilituki ei ole työpöytäsovelluksen korvaaja.
 
@@ -110,7 +121,7 @@ Mobiili käyttäisi todennäköisesti samaa REST/pilvikerrosta.
 
 ---
 
-# 17.8 Muut mahdolliset laajennukset
+# 17.9 Muut mahdolliset laajennukset
 
 - digitaalinen allekirjoitus julkaistulle kaaviolle
 - liitetiedostot projektiin (kilpailuohje PDF)
@@ -123,7 +134,7 @@ Nämä priorisoidaan käyttäjäpalautteen mukaan v1.x / v2.0-vaiheessa.
 
 ---
 
-# 17.9 Arkkitehtuurirajoitteet
+# 17.10 Arkkitehtuurirajoitteet
 
 Tulevat ominaisuudet eivät saa:
 
@@ -137,9 +148,9 @@ Jokainen merkittävä laajennus saa oman suunnitteludokumentin ennen toteutusta.
 
 ---
 
-# 17.10 Suunnitteluperiaatteet
+# 17.11 Suunnitteluperiaatteet
 
-- v1 ratkaisee henkilökohtaisen metsäsunnistuksen lähtökaavion.
+- v1 ratkaisee henkilökohtaisen metsäsunnistuksen lähtökaavion (sarjojen 1. ajat).
 - v2 laajentaa muotoja ja kanavia.
 - Laajennukset tulevat plugineina ja uusina Domain-entiteetteinä, ei erillisinä ohjelmina.
 - Käyttäjän työ lokalilla koneella säilyy aina mahdollisena.

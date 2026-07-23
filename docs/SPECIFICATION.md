@@ -1,6 +1,6 @@
 # StartPlanner Specification
 
-**Version:** 0.1 (Draft)
+**Version:** 0.2 (Draft)
 
 **Project:** StartPlanner
 
@@ -15,7 +15,7 @@
 | Luku | Tiedosto |
 |------|----------|
 | 1 Johdanto | [01-introduction.md](specification/01-introduction.md) |
-| 2 Domain-malli | [02-domain-model.md](specification/02-domain-model.md) |
+| 2 Domain-malli (lähtö, kaavio, lista) | [02-domain-model.md](specification/02-domain-model.md) |
 | 3 Lähtökaavion muodostaminen | [03-scheduling.md](specification/03-scheduling.md) |
 | 4 Optimointimoottori | [04-optimizer.md](specification/04-optimizer.md) |
 | 5 Lähtökaavioalgoritmi | [05-algorithms.md](specification/05-algorithms.md) |
@@ -31,3 +31,5 @@
 | 15 Suorituskyky | [15-performance.md](specification/15-performance.md) |
 | 16 Tiekartta | [16-roadmap.md](specification/16-roadmap.md) |
 | 17 Tulevaisuus | [17-future.md](specification/17-future.md) |
+
+**Ydinlupaus:** lähtökaavio = sarjojen ensimmäiset lähtöajat lähdöittäin. Kilpailijakohtainen lista on jatkokehitystä.

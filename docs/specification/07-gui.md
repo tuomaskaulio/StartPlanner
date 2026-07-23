@@ -47,6 +47,8 @@ Vasen reuna sisältää kilpailun rakenteen.
 ```
 Kilpailu
 
+    Lähdöt
+
     Sarjat
 
     Radat
@@ -62,8 +64,7 @@ Kilpailu
     Loki
 ```
 
-Kilpailupuu toimii ohjelman päänavigointina.
-
+Kilpailupuu toimii ohjelman päänavigointina. Aktiivinen lähtö valitaan puusta tai työkaluriviltä.
 ---
 
 # 7.4 Sarjanäkymä
@@ -72,17 +73,18 @@ Sarjanäkymässä näytetään kaikki sarjat.
 
 Esimerkki
 
-| Sarja | Rata | Kilpailijoita | Lähtöväli | Lukittu |
-| ----- | ---- | ------------: | --------: | ------- |
-| H21   | A    |            58 |         2 |         |
-| D21   | B    |            41 |         2 |         |
-| H20   | A    |            31 |         2 |         |
+| Sarja | Lähtö | Rata | Kilpailijoita | Lähtöväli | Lukittu |
+| ----- | ----- | ---- | ------------: | --------: | ------- |
+| H21   | 1     | A    |            58 |         2 |         |
+| D21   | 1     | B    |            41 |         2 |         |
+| H20   | 2     | A    |            31 |         2 |         |
 
 Sarjoja voidaan:
 
 - järjestää
 - lukita
 - muuttaa lähtöväliä
+- vaihtaa lähtöä (`StartLocation`)
 - muuttaa järjestystä
 
 ---
@@ -117,28 +119,29 @@ Näytettävät tiedot:
 - seura
 - sarja
 - Emit
-- lähtöaika
 - lukittu
+
+(Kilpailijakohtainen lähtöaika ei ole ydin-UI:ssa; se kuuluu tulospalveluun / jatkokehitykseen.)
 
 ---
 
 # 7.7 Lähtökaavio
 
-Ohjelman tärkein näkymä.
+Ohjelman tärkein näkymä. Näyttää **aktiivisen lähdön** `ClassStartPlan`-rivit.
 
 Taulukko:
 
-| Aika | Sarja | Kilpailija | Rata | 1. rasti | Lukittu |
-| ---- | ----- | ---------- | ---- | -------- | ------- |
+| 1. lähtöaika | Sarja | Kilpailijoita | Lähtöväli | Rata | 1. rasti | Lukittu |
+| ------------ | ----- | ------------: | --------: | ---- | -------- | ------- |
 
 Mahdolliset toiminnot:
 
-- siirrä kilpailijaa
-- siirrä sarjaa
+- siirrä sarjaa (muuta ensimmäistä lähtöaikaa)
 - lisää tauko
-- lukitse
-- poista lukitus
+- lukitse / poista lukitus
+- vaihda aktiivista lähtöä
 
+> **v0.2-UI:** näyttää vielä kilpailijakohtaisen listan. Speksin mukainen näkymä on sarjataulu yllä.
 ---
 
 # 7.8 Graafinen aikajana
@@ -305,7 +308,6 @@ Lähtökaaviossa voidaan käyttää Drag & Drop -toimintoa.
 
 Mahdolliset kohteet:
 
-- kilpailija
 - sarja
 - tauko
 
@@ -320,14 +322,13 @@ Tyypillinen käyttö:
 1. Luo uusi kilpailuprojekti (.spc)
 2. Tuo ratatiedot Condesista
 3. Tuo ilmoittautuneet IRMAsta tai eResultsista
-4. Tarkista sarjat ja radat
-5. Muodosta lähtökaavio
+4. Määritä lähdöt ja kytke sarjat lähtöihin
+5. Valitse lähtö ja muodosta lähtökaavio (sarjojen 1. ajat)
 6. Tarkastele laatupisteitä ja varoituksia
-7. Tee tarvittavat manuaaliset muutokset
-8. Lukitse valmiit sarjat tai lähdöt
-9. Lisää mahdolliset jälki-ilmoittautuneet
-10. Vie valmis lähtökaavio Exceliin, PDF:ään tai tulospalveluun
-
+7. Siirrä sarjoja tarvittaessa
+8. Lukitse valmiit sarjat
+9. Toista muille lähdöille
+10. Vie lähtökaavio Exceliin / CSV:hen (tulospalvelu arpoo yksilöajat)
 ---
 
 # 7.18 Käyttöliittymän suunnitteluperiaatteet

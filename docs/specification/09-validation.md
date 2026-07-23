@@ -25,33 +25,34 @@ Validointi jakautuu neljään tasoon.
 Tarkistetaan että:
 
 - kilpailulla on nimi
-- kilpailulla on lähtöaika
-- jokaisella sarjalla on rata
-- jokaisella radalla on vähintään yksi rasti
-- jokainen kilpailija kuuluu sarjaan
+- kilpailulla on vähintään yksi lähtö (`StartLocation`)
+- jokaisella sarjalla on rata ja lähtö
+- jokaisella radalla on vähintään yksi kilpailurasti
+- jokainen kilpailija kuuluu sarjaan (jos kilpailijoita on tuotu)
 
 ---
 
 ## Taso 2 – Lähtökaavion eheys
 
-Tarkistetaan että:
+Tarkistetaan että (käsiteltävässä lähdössä):
 
-- jokaisella kilpailijalla on lähtöaika
-- lähtöajat ovat yksikäsitteisiä
-- lähtöjärjestys on looginen
-- kaikki kilpailijat ovat mukana
+- jokaisella radoitetulla sarjalla on `first_start_time` kaaviossa
+- sarjojen järjestys / peittävät aikavälit ovat eheät
+- kaavio kuuluu oikeaan lähtöön
+
+Kilpailijakohtaisia aikoja ei vaadita.
 
 ---
 
 ## Taso 3 – Lajisäännöt
 
-Tarkistetaan esimerkiksi:
+Tarkistetaan **lähdöittäin** esimerkiksi:
 
 - saman radan sarjoja ei ole lomitettu
-- lähtöväli toteutuu
-- sama ensimmäinen rasti ei kuormitu liikaa
-- lähtöajat ovat oikeassa järjestyksessä
+- sama ensimmäinen rasti ei kuormitu liikaa (1 / min tässä lähdössä)
+- lukitukset säilyvät
 
+Eri lähdöt eivät jaa 1. rastin kapasiteettia.
 ---
 
 ## Taso 4 – Suositukset
@@ -77,10 +78,10 @@ Estää lähtökaavion hyväksymisen.
 Esimerkkejä:
 
 - puuttuva rata
-- puuttuva lähtöaika
-- kaksi kilpailijaa samalla minuutilla samalle ensimmäiselle rastille
-- lähtöväli liian lyhyt
-
+- puuttuva lähtö (`StartLocation`) sarjalta
+- puuttuva ensimmäinen lähtöaika kaaviossa
+- kaksi sarjaa ylikuormittaa saman 1. rastin samaan minuuttiin **samassa lähdössä**
+- saman radan sarjat limittäin samassa lähdössä
 ---
 
 ## Varoitus
@@ -121,6 +122,7 @@ Esimerkkejä:
 
 - nimi on yksilöllinen
 - rata on määritelty
+- lähtö (`start_location_id`) on määritelty
 - lähtöväli on positiivinen
 
 ---
@@ -137,53 +139,41 @@ Esimerkkejä:
 
 - nimi on annettu
 - kuuluu sarjaan
-- lähtöaika löytyy
+
+(Kilpailijakohtaista lähtöaikaa ei validoida ytimessä.)
 
 ---
 
-# 9.5 Lähtövälin tarkistus
+# 9.5 Lähtöväli kaavion tasolla
 
-Samassa sarjassa tarkistetaan:
-
-```
-lähtöaika(n+1) − lähtöaika(n)
-```
-
-Erotuksen tulee olla vähintään sarjan lähtöväli.
-
-Oletusarvo:
+Sarjan peittämä aikaväli kaaviossa on
 
 ```
-2 minuuttia
+[first_start, first_start + (n − 1) × interval]
 ```
+
+Tätä käytetään radan limityksen ja 1. rastin kuormituksen laskennassa.
+Kilpailijakohtaista välin tarkistusta ei tehdä ilman lähtölistaa.
 
 ---
 
 # 9.6 Ensimmäisen rastin tarkistus
 
-Kaikki kilpailijat ryhmitellään ensimmäisen rastin mukaan.
+Tarkistus tehdään **yhdelle lähdölle kerrallaan**.
 
-Jokaiselle minuutille lasketaan lähtijöiden määrä.
+Kaavion peittämiltä minuuteilta lasketaan, montako kilpailijaa (lähtövälin mukaan) on menossa samalle 1. rastille.
 
-Esimerkki:
+Jos kapasiteetti ylittyy, muodostuu virhe.
 
-| Aika  | Rasti 31 |
-| ----- | -------: |
-| 12:00 |        1 |
-| 12:01 |        1 |
-| 12:02 |        1 |
-
-Jos samalla minuutilla lähtee useampi kilpailija samalle ensimmäiselle rastille, muodostuu virhe.
-
+Eri lähdöt tarkistetaan erikseen; niiden välillä ei ole yhteisrajoitetta.
 ---
 
 # 9.7 Radan tarkistus
 
-Tarkistetaan että:
+Tarkistetaan **lähdöittäin** että:
 
 - samalla radalla olevat sarjat ovat yhtenäisinä jaksoina
 - sarjat eivät lomitu
-- radan käyttö on jatkuvaa
 
 ---
 

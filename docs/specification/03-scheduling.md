@@ -2,20 +2,23 @@
 
 ## 3.1 Johdanto
 
-Lähtökaavio on StartPlannerin tärkein toiminto.
+Lähtökaavio (`ClassStartPlan`) on StartPlannerin tärkein toiminto.
 
-Lähtökaavion muodostamisen tavoitteena on löytää mahdollisimman hyvä lähtöjärjestys huomioiden:
+Se tuottaa **yhden lähdön** (`StartLocation`) sarjoille ensimmäiset lähtöajat huomioiden:
 
-- lajisäännöt
-- kilpailun erityispiirteet
+- lajisäännöt (saman lähdön sisällä)
 - ratojen käyttö
-- ensimmäiset rastit
-- kilpailijavirran tasaisuus
+- ensimmäiset rastit (lähdöittäin)
+- kilpailijavirran tasaisuus (sarjatasolla)
 - käyttäjän tekemät lukitukset
 
-Algoritmi ei pyri löytämään matemaattisesti optimaalista ratkaisua, vaan käytännössä hyvin toimivan lähtökaavion.
+Suunnittelu tehdään **lähdöittäin**. Eri lähdöt eivät jaa aikajanaa.
+
+Algoritmi ei pyri löytämään matemaattisesti optimaalista ratkaisua, vaan käytännössä hyvin toimivan kaavion.
 
 Lopullinen päätös on aina käyttäjällä.
+
+Kilpailijakohtainen lähtölista ei ole tämän luvun tavoite (ks. jatkokehitys / tulospalvelu).
 
 ---
 
@@ -23,17 +26,19 @@ Lopullinen päätös on aina käyttäjällä.
 
 Lähtökaavion muodostamiseen tarvitaan vähintään seuraavat tiedot.
 
-## Kilpailu
+## Kilpailu ja lähtö
 
 - kilpailun nimi
-- ensimmäinen lähtö
-- viimeinen lähtö (valinnainen)
+- käsiteltävä `StartLocation`
+- lähdön aikajanan alku (ensimmäinen mahdollinen lähtöaika)
 
-## Sarjat
+## Sarjat (kyseisessä lähdössä)
 
 - sarjan nimi
 - rata
 - kilpailijamäärä
+- lähtöväli
+- `start_location_id`
 
 ## Radat
 
@@ -41,11 +46,7 @@ Lähtökaavion muodostamiseen tarvitaan vähintään seuraavat tiedot.
 - pituus
 - nousu
 
-## Kilpailijat
-
-- sarja
-- mahdolliset lukitukset
-
+Ilmoittautuneet tarvitaan kilpailijamääriin; yksittäisiä lähtöaikoja ei vaadita.
 ---
 
 # 3.3 Lähtöväli
@@ -73,44 +74,19 @@ Esimerkkejä
 
 # 3.4 Sarjat samalla radalla
 
-Jos samalla radalla kilpailee useita sarjoja, niiden lähtöjä ei saa lomittaa.
+Jos **samassa lähdössä** samalla radalla kilpailee useita sarjoja, niiden aikajaksoja ei saa lomittaa kaaviossa.
 
-Esimerkki
-
-```
-H21
-
-12:00
-
-12:02
-
-12:04
-
-12:06
-
-D21
-
-12:10
-
-12:12
-
-12:14
-```
-
-Ei sallittu
+Esimerkki (lähtökaavio)
 
 ```
-12:00 H21
+H21  12:00   (58 hlö, 2 min → kestää ~1 h 54 min)
 
-12:02 D21
-
-12:04 H21
-
-12:06 D21
+D21  14:00
 ```
+
+Ei sallittu: saman radan sarjojen päällekkäiset aikavälit samassa lähdössä.
 
 Syynä on kilpailun selkeys ja ratojen tasapuolinen käyttö.
-
 ---
 
 # 3.5 Sarjojen välinen tauko
@@ -136,46 +112,33 @@ Tauon tarkoitus on erottaa sarjat toisistaan.
 
 # 3.6 Sama ensimmäinen rasti
 
-Tämä on ohjelman tärkein sääntö.
+Tämä on ohjelman tärkein sääntö **yhden lähdön sisällä**.
 
-Jos usealla radalla on sama ensimmäinen rasti,
-
-niin kyseiselle rastille saa lähteä korkeintaan
+Jos samassa lähdössä usealla radalla on sama ensimmäinen rasti,
+kyseiselle rastille saa lähteä korkeintaan
 
 ```
 1 kilpailija / minuutti
 ```
 
-Esimerkki
+Kaavion tasolla tämä tarkoittaa, etteivät eri sarjojen peittävät minuuttislotit
+saa tuottaa kahta lähtijää samalle rastille samaan minuuttiin.
+
+Esimerkki (sallittu, sama lähtö)
+
+```
+12:00 H21 (1. rasti 31)
+12:01 D21 (1. rasti 31)
+```
+
+Ei sallittu (sama lähtö, sama minuutti, sama 1. rasti)
 
 ```
 12:00 H21
-
-12:01 D21
-
-12:02 H20
-
-12:03 D20
-```
-
-Kaikilla ensimmäinen rasti
-
-```
-31
-```
-
-Sallittu.
-
-Ei sallittu
-
-```
-12:00 H21
-
 12:00 D21
 ```
 
-jos ensimmäinen rasti on sama.
-
+**Eri lähdöt:** sama 1. rasti samaan minuuttiin on sallittu, koska lähdöt ovat itsenäisiä.
 ---
 
 # 3.7 Nopeiden sarjojen sijoittaminen
@@ -234,36 +197,11 @@ Muuten
 
 # 3.9 Tasainen kilpailijavirta
 
-Ohjelman tavoitteena on pitää lähtevien kilpailijoiden määrä mahdollisimman tasaisena.
+Ohjelman tavoitteena on pitää lähtevien kilpailijoiden määrä mahdollisimman tasaisena **lähdön sisällä**.
 
-Esimerkki
+Arvio tehdään **sarjatasolla**: kullakin minuutilla lähtijöitä ≈ 1 / lähtöväli niille sarjoille, joiden kaavio peittää kyseisen minuutin.
 
-Huono
-
-```
-12:00 14 kilpailijaa
-
-12:01 1 kilpailija
-
-12:02 0 kilpailijaa
-
-12:03 9 kilpailijaa
-```
-
-Hyvä
-
-```
-12:00 5
-
-12:01 5
-
-12:02 5
-
-12:03 5
-```
-
-Tätä kutsutaan kilpailijavirran optimoinniksi.
-
+Tätä kutsutaan kilpailijavirran optimoinniksi. Se ei edellytä kilpailijakohtaista lähtölistaa.
 ---
 
 # 3.10 Rajoitteiden prioriteetti
@@ -274,13 +212,12 @@ Ohjelma käyttää seuraavaa prioriteettia.
 
 ## Pakolliset
 
-Näitä ei saa koskaan rikkoa.
+Näitä ei saa koskaan rikkoa **käsiteltävässä lähdössä**.
 
 - lukitukset
-- sama rata ei limittäin
-- sama ensimmäinen rasti
-- lähtöväli
-
+- sama rata ei limittäin (saman lähdön sisällä)
+- sama ensimmäinen rasti (saman lähdön sisällä)
+- lähtöväli (sarjan sisäinen, kaavion kestossa)
 ---
 
 ## Tärkeät
@@ -307,10 +244,9 @@ Lukitukset estävät automaattiset muutokset.
 
 Lukita voidaan
 
-- kilpailija
 - sarja
-- aikajakso
-- kokonainen rata
+- aikajakso (lähdön sisällä)
+- kokonainen rata (lähdön kontekstissa)
 
 Optimizer ei saa muuttaa lukittua kohdetta.
 
@@ -318,35 +254,25 @@ Optimizer ei saa muuttaa lukittua kohdetta.
 
 # 3.12 Jälki-ilmoittautuneet
 
-Kun kilpailuun tulee uusia kilpailijoita,
+Kun sarjaan tulee uusia kilpailijoita, kaavion tasolla päivitetään kilpailijamäärä (ja tarvittaessa kestovaraus).
 
-ohjelma ei saa muodostaa koko lähtökaaviota uudelleen.
+Koko lähdön kaaviota ei muodosteta turhaan uudelleen, jos pieni siirto riittää.
 
-Tavoitteena on tehdä mahdollisimman pieni muutos.
-
-Optimoinnin tavoitteet
-
-1. sijoita uusi kilpailija
-
-2. siirrä mahdollisimman vähän muita
-
-3. säilytä kaikki lukitukset
-
-4. noudata lajisääntöjä
+Yksittäisen kilpailijan paikan arpominen kuuluu tulospalveluun tai tulevaan lähtölista-ominaisuuteen.
 
 ---
 
 # 3.13 Algoritmin vaiheet
 
-Lähtökaavio muodostetaan seuraavasti.
+Lähtökaavio muodostetaan **yhdelle lähdölle** seuraavasti.
 
 ## Vaihe 1
 
-Lue kilpailun tiedot.
+Valitse `StartLocation` ja lue sen sarjat.
 
 ## Vaihe 2
 
-Ryhmittele sarjat radoittain.
+Ryhmittele sarjat radoittain (lähdön sisällä).
 
 ## Vaihe 3
 
@@ -354,23 +280,23 @@ Laske ensimmäiset rastit.
 
 ## Vaihe 4
 
-Järjestä sarjat nopeuden mukaan.
+Järjestä sarjat (käyttäjä / nopeus / pituus).
 
 ## Vaihe 5
 
-Sijoita sarjat aikajanalle.
+Sijoita sarjat aikajanalle (`ClassStart.first_start_time`).
 
 ## Vaihe 6
 
-Tarkista ensimmäisen rastin kuormitus.
+Tarkista ensimmäisen rastin kuormitus (vain tämä lähtö).
 
 ## Vaihe 7
 
-Korjaa mahdolliset ristiriidat.
+Korjaa ristiriidat siirtämällä kokonaisia sarjoja.
 
 ## Vaihe 8
 
-Optimoi kilpailijavirta.
+Tasaa kilpailijavirtaa sarjatasolla.
 
 ## Vaihe 9
 
@@ -378,7 +304,7 @@ Tarkista lukitukset.
 
 ## Vaihe 10
 
-Muodosta valmis lähtökaavio.
+Palauta `ClassStartPlan`.
 
 ---
 
@@ -386,17 +312,15 @@ Muodosta valmis lähtökaavio.
 
 Hyvä lähtökaavio täyttää seuraavat ehdot.
 
-✓ Lajisäännöt toteutuvat.
+✓ Lajisäännöt toteutuvat käsiteltävässä lähdössä.
 
 ✓ Sarjat ovat loogisessa järjestyksessä.
 
-✓ Samalle radalle lähtevät sarjat ovat peräkkäin.
+✓ Samalle radalle lähtevät sarjat ovat peräkkäin (eivät limittäin).
 
-✓ Ensimmäiselle rastille ei muodostu ruuhkaa.
+✓ Ensimmäiselle rastille ei muodostu ruuhkaa **tässä lähdössä**.
 
-✓ Kilpailijavirta on tasainen.
-
-✓ Jälki-ilmoittautuneet voidaan lisätä pienillä muutoksilla.
+✓ Kilpailijavirta on tasainen (sarja-arvio).
 
 ✓ Käyttäjän tekemät lukitukset säilyvät.
 
@@ -404,15 +328,15 @@ Hyvä lähtökaavio täyttää seuraavat ehdot.
 
 # 3.15 Käyttäjän rooli
 
-StartPlanner tekee aina ehdotuksen.
+StartPlanner tekee aina ehdotuksen valitulle lähdölle.
 
 Käyttäjä voi:
 
 - hyväksyä ehdotuksen sellaisenaan
-- muuttaa yksittäisiä lähtöjä
-- siirtää kokonaisia sarjoja
+- siirtää kokonaisia sarjoja (muuttaa ensimmäistä lähtöaikaa)
 - lisätä taukoja
-- lukita lähtöjä
+- lukita sarjoja tai aikajaksoja
 - suorittaa optimoinnin uudelleen
+- vaihtaa käsiteltävää lähtöä
 
 Ohjelma ei koskaan estä käyttäjää tekemästä perusteltuja manuaalisia muutoksia, mutta se varoittaa, jos muutos rikkoo pakollisia sääntöjä.

@@ -34,9 +34,9 @@ Ei vielä automaattista lähtökaaviota.
 
 ---
 
-# 16.4 v0.2 – Ensimmäinen lähtökaavio
+# 16.4 v0.2 – Ensimmäinen käyttökelpoinen versio
 
-**Tavoite:** käyttökelpoinen automaattinen ehdotus.
+**Tavoite:** tuonti + automaattinen ehdotus oikealla aineistolla.
 
 Sisältää:
 
@@ -47,39 +47,40 @@ Sisältää:
 - perusvalidointi + issues-lista GUI:ssa
 - Excel- ja CSV-vienti
 - `.spc` tallenna/avaa
-- esimerkkiaineistot: anonymisoidut sample-small (complete) + sample-medium
+- esimerkkiaineistot: anonymisoidut sample-small + sample-medium
 
-Käyttäjä voi tuottaa ensimmäisen kaavion oikealla aineistolla.
-
----
-
-# 16.5 v0.3 – Optimointi ja jäljitettävyys
-
-**Tavoite:** muokattavuus ilman kaaosta.
-
-Sisältää:
-
-- optimointimoottori
-- lukitukset
-- historia (audit trail)
-- Undo / Redo
-- laatupisteet
-- korjausehdotusten ensimmäinen versio
+**Drift speksiin nähden:** v0.2 tuottaa vielä kilpailijakohtaisen listan (`StartSchedule`) yhdelle implisiittiselle lähdölle. Speksin mukainen ydin (`ClassStartPlan` + `StartLocation`) tulee v0.3:ssa.
 
 ---
 
-# 16.6 v0.4 – Käyttöliittymän viimeistely
+# 16.5 v0.3 – Lähdöt ja lähtökaavio ytimenä
 
-**Tavoite:** päivittäiseen kilpailutyöhön sopiva UI.
+**Tavoite:** speksin mukainen domain ja UI.
 
 Sisältää:
 
+- `StartLocation` (useita lähtöjä)
+- sarja → lähtö -kytkentä
+- `ClassStartPlan` Schedulerin tuloksena (sarja + 1. lähtöaika)
+- suunnittelu ja validointi **lähdöittäin** (1. rasti -sääntö vain saman lähdön sisällä)
+- GUI: lähtövalitsin + kaavionäkymä (ei kilpailijalistaa ytimessä)
+- Excel/CSV-vienti kaaviona
+- lukitukset (sarja / aikajakso) ja perushistoria
+
+---
+
+# 16.6 v0.4 – Optimointi ja UI-viimeistely
+
+**Tavoite:** päivittäiseen kilpailutyöhön sopiva hiominen.
+
+Sisältää:
+
+- optimointimoottori / laatupisteet
 - aikajananäkymä
-- sarja- ja kilpailijamuokkaus
-- validointiraportti UI:ssa
-- viennin viimeistely (Excel, CSV, PDF)
+- Undo / Redo
+- viennin viimeistely (PDF yms.)
 - asetukset (kilpailu / käyttäjä)
-- `.spc`-projektitiedosto tuotantokelpoisena
+- `.spc` tuotantokelpoisena migraatioineen
 
 ---
 
@@ -154,15 +155,15 @@ Jokaisella major/minor-julkaisulla on:
 
 # 16.11 Yhteenveto
 
-| Versio | Päämäärä                          |
-| ------ | --------------------------------- |
-| v0.1   | Domain + Condes + runko           |
-| v0.2   | Ensimmäinen automaattinen kaavio  |
-| v0.3   | Optimointi, lukitukset, historia  |
-| v0.4   | UI ja viennin viimeistely         |
-| v1.0   | Tuotantokelpoinen julkaisu        |
-| v1.x   | Vakaus ja palaute                 |
-| v2.0   | Uudet muodot ja integraatiot      |
+| Versio | Päämäärä                                      |
+| ------ | --------------------------------------------- |
+| v0.1   | Domain + Condes + runko                       |
+| v0.2   | Tuonti + lista-painotteinen ehdotus (legacy)  |
+| v0.3   | StartLocation + ClassStartPlan ytimenä        |
+| v0.4   | Optimointi ja UI-viimeistely                  |
+| v1.0   | Tuotantokelpoinen julkaisu                    |
+| v1.x   | Vakaus ja palaute                             |
+| v2.0   | Uudet muodot ja integraatiot                  |
 
 ---
 

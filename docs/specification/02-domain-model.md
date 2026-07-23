@@ -20,17 +20,30 @@ Importterit muuttavat ulkoisen tiedon aina Domain-olioiksi.
 
 ---
 
-# 2.2 Kilpailu (Competition)
+# 2.2 Käsitteiden erottelu
+
+| Käsite | Englantilainen nimi | Sisältö |
+| ------ | ------------------- | ------- |
+| Lähtö | `StartLocation` | Fyysinen tai looginen lähtöpaikka (esim. Lähtö 1) |
+| Lähtökaavio | `ClassStartPlan` | Sarjojen ensimmäiset lähtöajat yhdessä lähdössä |
+| Lähtölista | `StartList` | Kilpailijakohtaiset ajat ja numerot (jatkokehitys) |
+
+StartPlannerin **päätuote** on lähtökaavio. Yksittäisten kilpailijoiden lähtöajat arvotaan tyypillisesti tulospalveluohjelmassa; lähtölista ei kuulu ydinlupaukseen.
+
+---
+
+# 2.3 Kilpailu (Competition)
 
 Kilpailu on ohjelman päätason olio.
 
 Kilpailu sisältää:
 
 - kilpailun perustiedot
+- yksi tai useampi lähtö (`StartLocation`)
 - kaikki sarjat
 - kaikki radat
-- kaikki kilpailijat
-- lähtökaavion
+- kaikki kilpailijat (ilmoittautumistieto)
+- lähtökaaviot (yksi per lähtö)
 - asetukset
 - historian
 
@@ -38,7 +51,26 @@ Yhdessä ohjelmassa voi olla avoinna vain yksi kilpailu kerrallaan.
 
 ---
 
-# 2.3 Sarja (Class)
+# 2.4 Lähtö (StartLocation)
+
+Lähtö kuvaa fyysistä tai loogista lähtöpaikkaa.
+
+Esimerkkejä: “Lähtö A”, “Lähtö 1”, “Koulun piha”.
+
+| Kenttä | Selitys                |
+| ------ | ---------------------- |
+| id     | yksilöllinen tunniste  |
+| nimi   | näyttönimi             |
+
+Kilpailussa on vähintään yksi lähtö. Jos lähtöjä ei ole määritelty, käytetään yhtä oletuslähtöä.
+
+**Sarja kuuluu täsmälleen yhteen lähtöön.**
+
+Eri lähtöjen lähtökaaviot suunnitellaan **itsenäisesti**. Niiden kellonajat eivät riipu toisistaan.
+
+---
+
+# 2.5 Sarja (RaceClass)
 
 Sarja kuvaa kilpailuluokkaa.
 
@@ -53,20 +85,21 @@ Esimerkkejä:
 
 Sarjalla on vähintään seuraavat tiedot:
 
-| Kenttä             | Selitys                      |
-| ------------------ | ---------------------------- |
-| id                 | yksilöllinen tunniste        |
-| nimi               | H21                          |
-| rata               | radan tunniste               |
-| kilpailijamäärä    | osallistujien määrä          |
-| arvioitu vauhti    | suhteellinen nopeus          |
-| arvioitu rata-aika | minuuttia                    |
-| lähtöväli          | oletus 2 min                 |
-| lukittu            | voiko ohjelma siirtää sarjaa |
+| Kenttä             | Selitys                         |
+| ------------------ | ------------------------------- |
+| id                 | yksilöllinen tunniste           |
+| nimi               | H21                             |
+| rata               | radan tunniste                  |
+| lähtö              | `start_location_id`             |
+| kilpailijamäärä    | osallistujien määrä             |
+| arvioitu vauhti    | suhteellinen nopeus             |
+| arvioitu rata-aika | minuuttia                       |
+| lähtöväli          | oletus 2 min                    |
+| lukittu            | voiko ohjelma siirtää sarjaa    |
 
 ---
 
-# 2.4 Rata (Course)
+# 2.6 Rata (Course)
 
 Rata kuvaa yhtä kilpailurataa.
 
@@ -111,17 +144,17 @@ Ohjelma ei tallenna ensimmäistä rastia erillisenä Domain-kenttänä
 
 ---
 
-# 2.5 Ensimmäinen rasti
+# 2.7 Ensimmäinen rasti
 
 Ensimmäinen rasti on lähtökaavion tärkeimpiä tietoja.
 
-Kaikki sarjat, joiden ensimmäinen rasti on sama, muodostavat ensimmäisen rastin ryhmän.
+Kaikki **saman lähdön** sarjat, joiden ensimmäinen rasti on sama, muodostavat ensimmäisen rastin ryhmän kyseisessä lähdössä.
 
-Lähtökaavassa samaa ensimmäistä rastia kohti saa lähteä korkeintaan yksi kilpailija minuutissa.
+**Säännön scope:** samassa lähdössä samaa ensimmäistä rastia kohti saa lähteä korkeintaan yksi kilpailija minuutissa (kaavion tasolla: sarjojen päällekkäiset minuuttislotit eivät saa ylikuormittaa rastia).
 
-Tämä sääntö koskee kaikkia sarjoja.
+**Eri lähdöistä** saa lähteä samalle ensimmäiselle rastille samaan minuuttiin. Lähdöt eivät jaa 1. rastin kapasiteettia keskenään.
 
-Esimerkki
+Esimerkki (sama lähtö)
 
 ```
 H21 → 31
@@ -131,11 +164,11 @@ D21 → 31
 H20 → 31
 ```
 
-Nämä kolme sarjaa jakavat saman ensimmäisen rastin.
+Nämä kolme sarjaa jakavat saman ensimmäisen rastin **tässä lähdössä**.
 
 ---
 
-# 2.6 Kilpailija (Competitor)
+# 2.8 Kilpailija (Competitor)
 
 Kilpailija kuuluu aina täsmälleen yhteen sarjaan.
 
@@ -151,51 +184,66 @@ Kilpailijalla on vähintään:
 | emit      | valinnainen              |
 | lukittu   | voiko ohjelma siirtää    |
 
-Lähtöaika ja lähtönumero kuuluvat `Start`-olioon, eivät kilpailijaan.
+Ilmoittautumistieto tarvitaan kilpailijamääriin ja raportteihin. Yksittäisen kilpailijan lähtöaika ei kuulu Domain-ytimeen (ks. lähtölista, jatkokehitys).
 
 ---
 
-# 2.7 Lähtö (Start)
+# 2.9 Lähtökaavio (ClassStartPlan)
 
-Lähtö kuvaa yhden kilpailijan lähtöä.
+Lähtökaavio on StartPlannerin päätulos.
 
-Lähtö sisältää:
+Se on **yhteen lähtöön** kuuluva järjestetty lista sarjojen sijoituksista.
 
-- kilpailijan
-- lähtöajan
-- lähtönumeron
+Jokainen rivi (`ClassStart`) sisältää vähintään:
 
-Lähtö ei kuulu kilpailijaan.
-
-Lähtö kuuluu lähtökaavioon.
-
-Näin sama kilpailija voidaan tarvittaessa sijoittaa uudelleen ilman, että kilpailijatietoja muutetaan.
-
----
-
-# 2.8 Lähtökaavio (Start Schedule)
-
-Lähtökaavio on järjestetty lista lähdöistä.
+| Kenttä                 | Selitys                          |
+| ---------------------- | -------------------------------- |
+| sarja                  | `class_id`                       |
+| ensimmäinen lähtöaika  | sarjan ensimmäisen kilpailijan aika |
 
 Esimerkki
 
 ```
-12:00 H21 1
-
-12:02 H21 2
-
-12:04 H21 3
-
-12:06 D21 1
+12:00  H21
+12:10  D21
+12:22  H20
 ```
 
-Kaikki optimointi tehdään tähän rakenteeseen.
+Sarjan kesto kaaviossa johdetaan tarvittaessa:
 
-Kilpailijatietoja ei muuteta.
+```
+kesto ≈ (kilpailijamäärä − 1) × lähtöväli
+```
+
+Kaikki automaattinen sijoittelu ja optimointi tehdään tähän rakenteeseen **lähdöittäin**.
+
+Kilpailijatietoja ei muuteta kaaviota muodostaessa.
 
 ---
 
-# 2.9 Sarjaryhmä
+# 2.10 Lähtölista (StartList) — jatkokehitys
+
+Lähtölista on kilpailijakohtainen lista lähtöajoista ja -numeroista.
+
+Esimerkki
+
+```
+12:00 H21 Virtanen Aino 1
+12:02 H21 Korhonen Elias 2
+```
+
+Yksittäisten kilpailijoiden ajat arvotaan yleensä tulospalveluohjelmassa. StartPlanner voi myöhemmin:
+
+- tuottaa yksinkertaisen listan kaaviosta (lähtövälin mukaan), tai
+- tuoda valmiin listan tulospalvelusta
+
+Tämä ei ole v0.3-ydintoiminto.
+
+> **v0.2-toteutus:** nykyinen koodi tuottaa vielä kilpailijakohtaisen `StartSchedule`-listan. Se on väliaikainen; speksin mukainen ydin on `ClassStartPlan`.
+
+---
+
+# 2.11 Sarjaryhmä
 
 Useita sarjoja voidaan käsitellä yhtenä ryhmänä.
 
@@ -209,22 +257,21 @@ H20
 H18
 ```
 
-Ohjelma voi sijoittaa nämä peräkkäin.
+Ohjelma voi sijoittaa nämä peräkkäin saman lähdön kaaviossa.
 
 Ryhmä voidaan myöhemmin lukita.
 
 ---
 
-# 2.10 Lukitus
+# 2.12 Lukitus
 
 Lukitus estää ohjelmaa muuttamasta kohdetta.
 
 Lukittavia kohteita ovat
 
-- kilpailija
 - sarja
-- lähtö
-- aikajakso
+- aikajakso (lähdön sisällä)
+- myöhemmin: yksittäinen kilpailija / listarivi (jos lähtölista käytössä)
 
 Esimerkki
 
@@ -238,21 +285,15 @@ Optimizer ei saa tehdä muutoksia lukitulle alueelle.
 
 ---
 
-# 2.11 Jälki-ilmoittautunut
+# 2.13 Jälki-ilmoittautunut
 
-Jälki-ilmoittautunut on kilpailija, joka lisätään lähtökaavion muodostamisen jälkeen.
+Jälki-ilmoittautunut on kilpailija, joka lisätään ilmoittautumisen jälkeen.
 
-Ohjelman tavoitteena on sijoittaa jälki-ilmoittautunut niin, että mahdollisimman vähän olemassa olevia lähtöjä tarvitsee siirtää.
-
-Vaihtoehdot:
-
-- automaattinen sijoitus
-- käyttäjän valitsema paikka
-- kokonaan uusi lähtöväli
+Kaavion tasolla vaikutus on yleensä kilpailijamäärän kasvu (sarjan kesto voi pidentyä). Yksittäisen paikan arpominen kuuluu tulospalveluun tai tulevaan lähtölista-ominaisuuteen.
 
 ---
 
-# 2.12 Historia
+# 2.14 Historia
 
 Kaikista käyttäjän tekemistä muutoksista muodostetaan historiatieto.
 
@@ -268,17 +309,19 @@ Historia mahdollistaa muutosten seurannan ja myöhemmin myös kumoamisen.
 
 ---
 
-# 2.13 Domain-säännöt
+# 2.15 Domain-säännöt
 
 Domainissa noudatetaan seuraavia sääntöjä:
 
-- Kilpailija kuuluu aina yhteen sarjaan.
+- Kilpailussa on vähintään yksi lähtö.
+- Sarja kuuluu täsmälleen yhteen lähtöön.
 - Sarja käyttää yhtä rataa.
-- Rataa voi käyttää usea sarja.
-- Radalla on vähintään yksi rasti.
+- Rataa voi käyttää usea sarja (myös eri lähdöissä).
+- Radalla on vähintään yksi kilpailurasti.
 - Ensimmäinen rasti määräytyy rastilistasta.
-- Lähtö kuuluu lähtökaavioon.
-- Kilpailijaa ei poisteta lähtökaaviota muokattaessa.
+- Lähtökaavio kuuluu yhteen lähtöön ja sisältää sarjojen ensimmäiset ajat.
+- Eri lähdöt eivät jaa aikajanaa eivätkä 1. rastin kapasiteettia.
+- Kilpailija kuuluu aina yhteen sarjaan.
 - Lukittu kohde ei muutu automaattisesti.
 - Kaikki muutokset kirjataan historiaan.
 

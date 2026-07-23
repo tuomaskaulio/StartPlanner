@@ -2,24 +2,27 @@
 
 ## 5.1 Tavoite
 
-Lähtökaavioalgoritmin tehtävänä on muodostaa kilpailulle lähtökaavio, joka täyttää kaikki pakolliset säännöt ja tuottaa mahdollisimman tasaisen kilpailijavirran.
+Lähtökaavioalgoritmin tehtävänä on muodostaa **yhden lähdön** (`StartLocation`) `ClassStartPlan`, joka täyttää pakolliset säännöt ja tuottaa mahdollisimman tasaisen kilpailijavirran sarjatasolla.
 
-Algoritmi toimii deterministisesti. Samoilla lähtötiedoilla ja asetuksilla muodostuu aina sama lähtökaavio.
+Algoritmi toimii deterministisesti. Samoilla lähtötiedoilla ja asetuksilla muodostuu aina sama kaavio.
 
 Satunnaisuutta ei käytetä.
+
+Kilpailijakohtaista lähtölistaa ei tuoteta (jatkokehitys / tulospalvelu).
 
 ---
 
 # 5.2 Syöte
 
-Algoritmi saa syötteenä ainoastaan Domain-mallin.
+Algoritmi saa syötteenä Domain-mallin ja käsiteltävän lähdön tunnisteen.
 
 Syötteeseen kuuluvat:
 
 - kilpailu
-- sarjat
-- kilpailijat
+- `start_location_id`
+- kyseisen lähdön sarjat
 - radat
+- kilpailijamäärät (sarjoittain)
 - asetukset
 - mahdolliset lukitukset
 
@@ -29,17 +32,17 @@ Algoritmi ei lue tiedostoja eikä käytä käyttöliittymää.
 
 # 5.3 Tulos
 
-Tuloksena syntyy StartSchedule.
+Tuloksena syntyy `ClassStartPlan`.
 
-Lähtökaavio sisältää:
+Jokainen rivi sisältää:
 
-- kilpailijan
-- lähtöajan
-- lähtönumeron
 - sarjan
-- radan
+- ensimmäisen lähtöajan
+- (johdettuna) radan ja 1. rastin raportointia varten
 
-Lähtökaavio voidaan muodostaa useita kertoja ilman että alkuperäinen kilpailudata muuttuu.
+Kaavio voidaan muodostaa uudelleen ilman että ilmoittautumisdata muuttuu.
+
+> **v0.2:** toteutus palauttaa vielä kilpailijakohtaisen `StartSchedule`-listan. Speksin mukainen tulos on `ClassStartPlan`.
 
 ---
 
@@ -47,11 +50,12 @@ Lähtökaavio voidaan muodostaa useita kertoja ilman että alkuperäinen kilpail
 
 Ennen laskentaa tarkistetaan:
 
-- kaikilla kilpailijoilla on sarja
-- kaikilla sarjoilla on rata
-- kaikilla radoilla on vähintään yksi rasti
+- `start_location_id` on olemassa
+- kaikilla käsiteltävillä sarjoilla on rata ja lähtö
+- kaikilla radoilla on vähintään yksi kilpailurasti
 - lähtöväli on määritelty
-- kilpailun aloitusaika on asetettu
+- lähdön aikajanan alku on asetettu
+- kilpailijamäärä on tiedossa (tai 0)
 
 Virheellinen aineisto estää laskennan.
 
@@ -59,22 +63,9 @@ Virheellinen aineisto estää laskennan.
 
 # 5.5 Vaihe 2 – Sarjojen ryhmittely
 
+Käsitellään vain valitun lähdön sarjat.
+
 Sarjat ryhmitellään radan mukaan.
-
-Esimerkki
-
-Rata A
-
-- H21
-- H20
-
-Rata B
-
-- D21
-- D20
-
-Jokainen rata muodostaa yhden käsittelyryhmän.
-
 ---
 
 # 5.6 Vaihe 3 – Ensimmäisen rastin ryhmittely
@@ -125,46 +116,21 @@ Jos kaksi sarjaa ovat muuten samanarvoisia, niiden keskinäinen järjestys ei mu
 
 Sarjat sijoitetaan aikajanalle yksi kerrallaan.
 
-Kullekin sarjalle varataan yhtenäinen aikajakso.
+Kullekin sarjalle asetetaan `first_start_time`. Sarjan peittämä aikaväli on
+
+```
+[first, first + (n − 1) × interval]
+```
 
 Sarjaa ei koskaan jaeta useaan osaan automaattisesti.
-
-Esimerkki
-
-```
-12:00
-
-12:02
-
-12:04
-
-12:06
-```
-
-ei
-
-```
-12:00
-
-12:02
-
-...
-
-12:20
-
-12:22
-```
-
 ---
 
 # 5.9 Vaihe 6 – Ensimmäisen rastin tarkistus
 
-Kun sarja sijoitetaan, tarkistetaan jokainen lähtö.
+Kun sarja sijoitetaan, tarkistetaan sen peittämät minuutit suhteessa muihin
+**saman lähdön** sarjoihin, joilla on sama ensimmäinen rasti.
 
-Jos samalla minuutilla lähtisi toinen kilpailija samalle ensimmäiselle rastille,
-
-sijoitusta siirretään eteenpäin, kunnes konflikti poistuu.
-
+Jos kapasiteetti (1 / min) ylittyy, sijoitusta siirretään eteenpäin.
 ---
 
 # 5.10 Vaihe 7 – Sarjojen väliset tauot
@@ -204,7 +170,6 @@ Kaikki lukitut kohteet tarkistetaan.
 
 Optimointi ei saa:
 
-- siirtää lukittua kilpailijaa
 - siirtää lukittua sarjaa
 - käyttää lukittua aikajaksoa
 
@@ -216,17 +181,15 @@ ratkaisu hylätään.
 
 # 5.13 Vaihe 10 – Validointi
 
-Valmis lähtökaavio tarkistetaan.
+Valmis `ClassStartPlan` tarkistetaan (vain kyseinen lähtö).
 
 Tarkistetaan ainakin:
 
-- lähtövälit
-- ensimmäiset rastit
+- ensimmäisen rastin kapasiteetti
 - ratojen limitys
-- päällekkäiset lähdöt
 - lukitukset
 
-Virheellinen lähtökaavio palautetaan virhetilassa.
+Virheellinen kaavio palautetaan virhetilassa.
 
 ---
 
@@ -256,14 +219,7 @@ Tarkoitus ei ole "kilpailuttaa" lähtökaavioita, vaan antaa käyttäjälle nope
 
 Algoritmin tulee olla deterministinen.
 
-Samoilla syötteillä syntyy aina sama tulos.
-
-Tämä helpottaa:
-
-- testausta
-- virheiden selvittämistä
-- historiatietojen vertailua
-- käyttäjän luottamusta ohjelmaan
+Samoilla syötteillä (mukaan lukien `start_location_id`) syntyy aina sama tulos.
 
 ---
 
@@ -271,15 +227,14 @@ Tämä helpottaa:
 
 Tavoitteet:
 
-- ensimmäinen ratkaisu alle 1 sekunti
+- ensimmäinen kaavio alle 1 sekunti
 - optimointi alle 5 sekuntia
-- jälki-ilmoittautuneen lisäys alle 1 sekunti
 
 Testikokona käytetään:
 
-- 40 sarjaa
+- 40 sarjaa / lähtö
 - 20 rataa
-- 1000 kilpailijaa
+- 1000 kilpailijaa (määrätietoina)
 
 ---
 
@@ -295,8 +250,8 @@ SchedulerService
 
 jonka vastuulla on:
 
-- uuden lähtökaavion muodostaminen
-- nykyisen lähtökaavion optimointi
+- uuden `ClassStartPlan`-kaavion muodostaminen yhdelle lähdölle
+- nykyisen kaavion optimointi
 - validointi
 - laatupisteiden laskenta
 

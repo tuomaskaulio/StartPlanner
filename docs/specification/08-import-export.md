@@ -92,16 +92,23 @@ Vienti toteutetaan erillisenä pluginina.
 
 Excel on tärkein vientimuoto.
 
-Vienti sisältää ainakin:
+**Ensisijainen vienti (lähtökaavio):**
 
-- lähtöaikalistan
-- sarjakohtaisen lähtöluettelon
-- ratakohtaisen lähtöluettelon
-- ensimmäisen rastin raportin
-- kilpailijavirran raportin
+- sarja
+- ensimmäinen lähtöaika
+- lähtö (`StartLocation`)
+- kilpailijamäärä
+- lähtöväli
+- rata
+- 1. rasti
+
+Valinnaisesti myöhemmin:
+
+- kilpailijakohtainen lähtölista (jos tuotettu tai tuotu)
+- ensimmäisen rastin kuormitusraportti lähdöittäin
+- kilpailijavirran raportti
 
 Excel-vienti käyttää valmista pohjaa, jota voidaan myöhemmin muokata.
-
 ---
 
 # 8.7 CSV

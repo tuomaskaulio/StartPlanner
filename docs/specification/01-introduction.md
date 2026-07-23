@@ -4,13 +4,15 @@
 
 StartPlanner on avoimen lähdekoodin työpöytäsovellus suunnistuskilpailujen lähtökaavioiden suunnitteluun.
 
-Ohjelman tavoitteena on automatisoida kilpailujen lähtöaikojen suunnittelu siten, että:
+Ohjelman tavoitteena on automatisoida **sarjojen ensimmäisten lähtöaikojen** suunnittelu siten, että:
 
-- Suomen Suunnistusliiton lajisääntöjä noudatetaan
+- Suomen Suunnistusliiton lajisääntöjä noudatetaan (lähdöittäin)
 - ratakohtaiset rajoitteet huomioidaan
-- ensimmäisten rastien kuormitus tasataan
-- kilpailijoiden lähtövirta pysyy mahdollisimman tasaisena
-- jälki-ilmoittautuneet voidaan lisätä mahdollisimman pienillä muutoksilla olemassa olevaan lähtökaavioon.
+- ensimmäisten rastien kuormitus tasataan saman lähdön sisällä
+- kilpailijavirta pysyy mahdollisimman tasaisena (sarja-arvio)
+- useita lähtöjä voidaan suunnitella toisistaan riippumatta
+
+Yksittäisten kilpailijoiden lähtöajat arvotaan tyypillisesti tulospalveluohjelmassa. StartPlanner ei korvaa tulospalvelua.
 
 Ohjelma ei ole tulospalveluohjelma eikä ratamestariohjelma.
 
@@ -118,7 +120,8 @@ StartPlanner EI sisällä
 
 Nämä kuuluvat muihin ohjelmiin.
 
-StartPlanner keskittyy lähtökaavioon.
+StartPlanner keskittyy **lähtökaavioon** (sarja + ensimmäinen lähtöaika).
+Kilpailijakohtainen lähtölista on jatkokehitystä.
 
 ---
 
@@ -129,12 +132,11 @@ Tyypillinen työnkulku on
 1. Luodaan kilpailu.
 2. Luetaan ratatiedot Condesista.
 3. Luetaan ilmoittautuneet IRMAsta tai eResultsista.
-4. Ohjelma muodostaa lähtökaavion.
-5. Käyttäjä tarkistaa ehdotuksen.
-6. Käyttäjä tekee tarvittavat muutokset.
-7. Lähtökaavio lukitaan.
-8. Mahdolliset jälki-ilmoittautuneet lisätään.
-9. Lopullinen lähtökaavio viedään tulospalveluun tai Exceliin.
+4. Määritetään lähdöt ja kytketään sarjat niihin.
+5. Valitaan lähtö; ohjelma muodostaa lähtökaavion (sarjojen 1. ajat).
+6. Käyttäjä tarkistaa ehdotuksen ja siirtää sarjoja tarvittaessa.
+7. Toistetaan muille lähdöille.
+8. Lähtökaavio viedään Exceliin / tulospalveluun (yksilöajat arvotaan tulospalvelussa).
 
 ---
 
@@ -158,12 +160,13 @@ Sisältää
 
 ## Scheduler
 
-Lähtökaavion muodostaminen.
+Lähtökaavion (`ClassStartPlan`) muodostaminen **lähdöittäin**.
 
 Huomioi
 
+- lähtö (`StartLocation`)
 - rata
-- ensimmäinen rasti
+- ensimmäinen rasti (lähdön sisällä)
 - lähtövälit
 - sarjaryhmät
 
@@ -173,7 +176,7 @@ Huomioi
 
 Parantaa automaattisesti lähtökaaviota.
 
-Tavoitteena on tasainen kilpailijavirta.
+Tavoitteena on tasainen kilpailijavirta sarjatasolla.
 
 ---
 
@@ -181,9 +184,9 @@ Tavoitteena on tasainen kilpailijavirta.
 
 Käyttäjä voi
 
-- siirtää sarjoja
-- siirtää yksittäisiä kilpailijoita
-- lukita lähtöjä
+- siirtää sarjoja (ensimmäinen lähtöaika)
+- vaihtaa sarjan lähtöä
+- lukita sarjoja / aikajaksoja
 - lisätä taukoja
 
 ---
@@ -227,16 +230,15 @@ v0.1
 
 v0.2
 - IRMA ILMOIT -luku + IOF CourseData
-- ensimmäinen automaattinen lähtökaavio
+- ensimmäinen automaattinen ehdotus (lista-painotteinen, legacy)
 - Excel/CSV-vienti ja `.spc`
 
 v0.3
-- optimointi
-- lukitukset
-- historia
+- StartLocation + ClassStartPlan (sarjojen 1. ajat)
+- suunnittelu lähdöittäin
 
 v0.4
-- käyttöliittymän viimeistely
+- optimointi ja UI-viimeistely
 
 v1.0
 - ensimmäinen tuotantoversio

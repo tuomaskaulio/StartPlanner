@@ -45,10 +45,11 @@ Projektiin tallennetaan kaikki käyttäjän työ.
 Esimerkiksi:
 
 - kilpailun perustiedot
+- lähdöt (`StartLocation`)
 - sarjat
 - radat
 - kilpailijat
-- lähtökaavio
+- lähtökaaviot (`class_starts` per lähtö)
 - käyttäjän tekemät muutokset
 - lukitukset
 - asetukset
@@ -66,6 +67,8 @@ Projektitiedosto sisältää seuraavat päätaulut.
 ```
 competition
 
+start_locations
+
 classes
 
 courses
@@ -74,7 +77,7 @@ course_controls
 
 competitors
 
-starts
+class_starts
 
 locks
 
@@ -86,6 +89,8 @@ validation_results
 
 metadata
 ```
+
+`starts` (kilpailijakohtainen lähtölista) on valinnainen / tulevaisuuden taulu.
 
 Myöhemmin voidaan lisätä uusia tauluja ilman, että vanhat projektit rikkoutuvat.
 
