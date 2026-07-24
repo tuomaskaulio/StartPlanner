@@ -31,7 +31,6 @@ class SchedulerService:
             )
 
         start = competition.competition_start_datetime()
-        gap = timedelta(minutes=competition.settings.class_gap_min)
         course_durations = self._course_durations(competition, classes)
         bottleneck_id = self._bottleneck_course_id(competition, course_durations)
         estimated_window = self._schedule_window_end(start, course_durations)
@@ -74,7 +73,6 @@ class SchedulerService:
                 competition=competition,
                 rc=rc,
                 start=start,
-                gap=gap,
                 window_end=estimated_window,
                 course_durations=course_durations,
                 occupied=occupied,
@@ -99,7 +97,6 @@ class SchedulerService:
                 competition=competition,
                 rc=rc,
                 start=start,
-                gap=gap,
                 window_end=window_end,
                 course_durations=course_durations,
                 occupied=occupied,
@@ -122,7 +119,6 @@ class SchedulerService:
             entries, _occupied, _course_end, _minute_load = self._rebalance_others(
                 competition=competition,
                 start=start,
-                gap=gap,
                 window_end=fill_window,
                 course_durations=course_durations,
                 bottleneck_classes=bottleneck_classes,
@@ -140,7 +136,6 @@ class SchedulerService:
         *,
         competition: Competition,
         start: datetime,
-        gap: timedelta,
         window_end: datetime,
         course_durations: dict[str, int],
         bottleneck_classes: list[RaceClass],
@@ -192,7 +187,6 @@ class SchedulerService:
                 competition=competition,
                 rc=rc,
                 start=start,
-                gap=gap,
                 window_end=window_end,
                 course_durations=course_durations,
                 occupied=occupied,
@@ -253,7 +247,6 @@ class SchedulerService:
         competition: Competition,
         rc: RaceClass,
         start: datetime,
-        gap: timedelta,
         window_end: datetime,
         course_durations: dict[str, int],
         occupied: dict[str, set[datetime]],
@@ -269,6 +262,7 @@ class SchedulerService:
         course = competition.course_for_class(rc)
         assert course is not None and course.first_control
         first_control = course.first_control
+        gap = timedelta(minutes=competition.class_gap_for_course(rc.course_id))
 
         if rc.id in locked_times:
             placement = locked_times[rc.id]
@@ -396,13 +390,13 @@ class SchedulerService:
         for rc in classes:
             if rc.course_id:
                 by_course[rc.course_id].append(rc)
-        gap = competition.settings.class_gap_min
         durations: dict[str, int] = {}
         for course_id, rcs in by_course.items():
             total = 0
             for rc in rcs:
                 n = max(competition.competitor_count(rc.id), 1)
                 total += SchedulerService._class_stream_minutes(rc, n)
+            gap = competition.class_gap_for_course(course_id)
             total += gap * max(len(rcs) - 1, 0)
             durations[course_id] = total
         return durations

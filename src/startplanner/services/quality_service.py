@@ -127,7 +127,6 @@ class QualityService:
         entries = plan.sorted_entries()
         if len(entries) < 2:
             return 5
-        desired = competition.settings.class_gap_min
         good = 0
         total = 0
         for prev, cur in zip(entries, entries[1:]):
@@ -137,7 +136,8 @@ class QualityService:
             end = competition.class_span_end(rc_prev, prev.first_start_time)
             gap = int((cur.first_start_time - end).total_seconds() // 60)
             total += 1
-            if gap >= desired:
+            needed = competition.class_gap_for_course(rc_prev.course_id)
+            if gap >= needed:
                 good += 1
         if total == 0:
             return 5

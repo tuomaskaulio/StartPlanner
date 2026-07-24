@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS courses (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     length_m INTEGER NOT NULL,
-    climb_m INTEGER NOT NULL
+    climb_m INTEGER NOT NULL,
+    class_gap_min INTEGER
 );
 CREATE TABLE IF NOT EXISTS course_controls (
     course_id TEXT NOT NULL,
@@ -159,8 +160,15 @@ class SpcStore:
             )
         for course in competition.courses.values():
             conn.execute(
-                "INSERT INTO courses(id, name, length_m, climb_m) VALUES (?, ?, ?, ?)",
-                (course.id, course.name, course.length_m, course.climb_m),
+                "INSERT INTO courses(id, name, length_m, climb_m, class_gap_min) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (
+                    course.id,
+                    course.name,
+                    course.length_m,
+                    course.climb_m,
+                    course.class_gap_min,
+                ),
             )
             for seq, control in enumerate(course.controls):
                 conn.execute(
@@ -247,7 +255,17 @@ class SpcStore:
                 competition.add_start_location(StartLocation(id=r[0], name=r[1]))
         competition.ensure_default_start_location()
 
-        for c in conn.execute("SELECT id, name, length_m, climb_m FROM courses"):
+        course_cols = [
+            info[1] for info in conn.execute("PRAGMA table_info(courses)")
+        ]
+        has_course_gap = "class_gap_min" in course_cols
+        if has_course_gap:
+            course_sql = (
+                "SELECT id, name, length_m, climb_m, class_gap_min FROM courses"
+            )
+        else:
+            course_sql = "SELECT id, name, length_m, climb_m FROM courses"
+        for c in conn.execute(course_sql):
             controls = [
                 r[0]
                 for r in conn.execute(
@@ -256,7 +274,14 @@ class SpcStore:
                 )
             ]
             competition.add_course(
-                Course(id=c[0], name=c[1], length_m=c[2], climb_m=c[3], controls=controls)
+                Course(
+                    id=c[0],
+                    name=c[1],
+                    length_m=c[2],
+                    climb_m=c[3],
+                    controls=controls,
+                    class_gap_min=c[4] if has_course_gap else None,
+                )
             )
 
         class_cols = [

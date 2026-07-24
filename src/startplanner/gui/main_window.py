@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMainWindow,
     QMessageBox,
+    QPushButton,
     QSpinBox,
     QSplitter,
     QStatusBar,
@@ -33,9 +34,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from startplanner.gui.course_grid import build_course_grid
 from startplanner.domain import ClassStart, ClassStartPlan, Competition, StartLocation
 from startplanner.domain.errors import ScheduleError, StartPlannerError
+from startplanner.gui.course_grid import build_course_grid
 from startplanner.services.class_service import ClassService
 from startplanner.services.competition_service import CompetitionService
 from startplanner.services.history_service import HistoryService
@@ -44,6 +45,13 @@ from startplanner.services.optimizer_service import OptimizerService
 from startplanner.services.quality_service import QualityService
 from startplanner.services.scheduler_service import SchedulerService
 from startplanner.services.validation_service import ValidationService
+from startplanner.validation.issues import Severity
+
+_SEVERITY_FI = {
+    Severity.ERROR: "Virhe",
+    Severity.WARNING: "Varoitus",
+    Severity.NOTE: "Huomautus",
+}
 
 
 class SettingsDialog(QDialog):
@@ -122,7 +130,7 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
         file_menu.addAction("Tuo CourseData…", self._import_coursedata)
         file_menu.addAction("Tuo ilmoittautumiset…", self._import_entries)
-        file_menu.addAction("Tuo myöhäiset ilmoittautumiset…", self._import_late_entries)
+        file_menu.addAction("Tuo jälki-ilmoittautuneet…", self._import_late_entries)
         file_menu.addSeparator()
         file_menu.addAction("Vie Excel…", self._export_excel)
         file_menu.addAction("Vie CSV…", self._export_csv)
@@ -165,6 +173,15 @@ class MainWindow(QMainWindow):
         right_layout = QVBoxLayout(right)
         right_layout.addWidget(top)
         self._tabs = QTabWidget()
+        self._locations_page = QWidget()
+        locations_layout = QVBoxLayout(self._locations_page)
+        self._locations_table = QTableWidget()
+        locations_layout.addWidget(self._locations_table)
+        add_loc_btn = QPushButton("Lisää lähtö…")
+        add_loc_btn.clicked.connect(self._add_start_location)
+        locations_layout.addWidget(add_loc_btn)
+        self._locations_table.itemChanged.connect(self._on_location_name_changed)
+
         self._classes_table = QTableWidget()
         self._courses_table = QTableWidget()
         self._competitors_table = QTableWidget()
@@ -175,13 +192,14 @@ class MainWindow(QMainWindow):
         self._timeline_table = QTableWidget()
         self._grid_table = QTableWidget()
         self._issues_table = QTableWidget()
+        self._tabs.addTab(self._locations_page, "Lähdöt")
         self._tabs.addTab(self._classes_table, "Sarjat")
         self._tabs.addTab(self._courses_table, "Radat")
         self._tabs.addTab(self._competitors_table, "Kilpailijat")
         self._tabs.addTab(self._plan_table, "Lähtökaavio")
         self._tabs.addTab(self._timeline_table, "Aikajana")
         self._tabs.addTab(self._grid_table, "Ruudukko")
-        self._tabs.addTab(self._issues_table, "Issues")
+        self._tabs.addTab(self._issues_table, "Huomiot")
         right_layout.addWidget(self._tabs)
         splitter.addWidget(right)
         splitter.setStretchFactor(1, 3)
@@ -262,7 +280,7 @@ class MainWindow(QMainWindow):
         self._import_entries_file(late=True)
 
     def _import_entries_file(self, *, late: bool) -> None:
-        title = "Tuo myöhäiset ilmoittautumiset" if late else "Tuo ilmoittautumiset"
+        title = "Tuo jälki-ilmoittautuneet" if late else "Tuo ilmoittautumiset"
         path, _ = QFileDialog.getOpenFileName(self, title, "", "CSV (*.csv);;All (*)")
         if not path:
             return
@@ -527,13 +545,14 @@ class MainWindow(QMainWindow):
 
     def _on_tree_clicked(self, item: QTreeWidgetItem, _col: int) -> None:
         mapping = {
+            "Lähdöt": self._locations_page,
             "Sarjat": self._classes_table,
             "Radat": self._courses_table,
             "Kilpailijat": self._competitors_table,
             "Lähtökaavio": self._plan_table,
             "Aikajana": self._timeline_table,
             "Ruudukko": self._grid_table,
-            "Issues": self._issues_table,
+            "Huomiot": self._issues_table,
         }
         key = item.text(0)
         if key in mapping:
@@ -560,21 +579,9 @@ class MainWindow(QMainWindow):
             self._active_location_id = next(iter(self._competition.start_locations))
         self._refresh_location_combo()
         self._refresh_tree()
+        self._refresh_locations_table()
         self._refresh_classes_table()
-        self._fill_table(
-            self._courses_table,
-            ["Rata", "Pituus (m)", "Nousu", "1. rasti", "Rasteja"],
-            [
-                [
-                    c.name,
-                    str(c.length_m),
-                    str(c.climb_m),
-                    c.first_control or "—",
-                    str(len(c.controls)),
-                ]
-                for c in sorted(self._competition.courses.values(), key=lambda x: x.name)
-            ],
-        )
+        self._refresh_courses_table()
         self._fill_table(
             self._competitors_table,
             ["Nimi", "Seura", "Sarja", "Emit"],
@@ -597,6 +604,50 @@ class MainWindow(QMainWindow):
         self._refresh_issues()
         self._update_history_actions()
 
+    def _refresh_locations_table(self) -> None:
+        headers = ["Nimi", "Sarjoja"]
+        locations = sorted(
+            self._competition.start_locations.values(), key=lambda loc: loc.name
+        )
+        self._locations_table.blockSignals(True)
+        self._locations_table.clear()
+        self._locations_table.setColumnCount(len(headers))
+        self._locations_table.setHorizontalHeaderLabels(headers)
+        self._locations_table.setRowCount(len(locations))
+        readonly = Qt.ItemIsSelectable | Qt.ItemIsEnabled
+        for row, loc in enumerate(locations):
+            n_classes = sum(
+                1
+                for rc in self._competition.classes.values()
+                if rc.start_location_id == loc.id
+            )
+            name_item = QTableWidgetItem(loc.name)
+            name_item.setData(Qt.UserRole, loc.id)
+            self._locations_table.setItem(row, 0, name_item)
+            count_item = QTableWidgetItem(str(n_classes))
+            count_item.setFlags(readonly)
+            self._locations_table.setItem(row, 1, count_item)
+        self._locations_table.blockSignals(False)
+        self._locations_table.resizeColumnsToContents()
+
+    def _on_location_name_changed(self, item: QTableWidgetItem) -> None:
+        if item.column() != 0:
+            return
+        location_id = item.data(Qt.UserRole)
+        if not location_id:
+            return
+        try:
+            self._class_service.rename_start_location(
+                self._competition, location_id, item.text()
+            )
+        except StartPlannerError as exc:
+            QMessageBox.warning(self, "Lähtö", str(exc))
+            self._refresh_locations_table()
+            return
+        self._refresh_location_combo()
+        self._refresh_classes_table()
+        self._refresh_plan_and_status()
+
     def _refresh_classes_table(self) -> None:
         headers = ["Sarja", "Lähtö", "Rata", "Kilpailijoita", "Lähtöväli"]
         classes = sorted(self._competition.classes.values(), key=lambda c: c.name)
@@ -616,16 +667,22 @@ class MainWindow(QMainWindow):
                 name_item.setBackground(missing_bg)
             self._classes_table.setItem(row, 0, name_item)
 
-            loc_name = (
-                self._competition.start_locations[rc.start_location_id].name
-                if rc.start_location_id in self._competition.start_locations
-                else "—"
+            loc_combo = QComboBox()
+            loc_combo.blockSignals(True)
+            for loc in sorted(
+                self._competition.start_locations.values(), key=lambda x: x.name
+            ):
+                loc_combo.addItem(loc.name, loc.id)
+            idx = loc_combo.findData(rc.start_location_id)
+            if idx >= 0:
+                loc_combo.setCurrentIndex(idx)
+            loc_combo.blockSignals(False)
+            loc_combo.currentIndexChanged.connect(
+                lambda _idx, class_id=rc.id, cb=loc_combo: self._on_class_location_changed(
+                    class_id, cb
+                )
             )
-            loc_item = QTableWidgetItem(loc_name)
-            loc_item.setFlags(readonly)
-            if missing:
-                loc_item.setBackground(missing_bg)
-            self._classes_table.setItem(row, 1, loc_item)
+            self._classes_table.setCellWidget(row, 1, loc_combo)
 
             combo = QComboBox()
             combo.blockSignals(True)
@@ -646,17 +703,47 @@ class MainWindow(QMainWindow):
             )
             self._classes_table.setCellWidget(row, 2, combo)
 
-            for col, value in (
-                (3, str(self._competition.competitor_count(rc.id))),
-                (4, str(rc.start_interval_min)),
-            ):
-                item = QTableWidgetItem(value)
-                item.setFlags(readonly)
-                if missing:
-                    item.setBackground(missing_bg)
-                self._classes_table.setItem(row, col, item)
+            count_item = QTableWidgetItem(str(self._competition.competitor_count(rc.id)))
+            count_item.setFlags(readonly)
+            if missing:
+                count_item.setBackground(missing_bg)
+            self._classes_table.setItem(row, 3, count_item)
+
+            interval = QSpinBox()
+            interval.setRange(1, 30)
+            interval.setValue(rc.start_interval_min)
+            interval.valueChanged.connect(
+                lambda value, class_id=rc.id: self._on_class_interval_changed(
+                    class_id, value
+                )
+            )
+            self._classes_table.setCellWidget(row, 4, interval)
 
         self._classes_table.resizeColumnsToContents()
+
+    def _on_class_location_changed(self, class_id: str, combo: QComboBox) -> None:
+        location_id = combo.currentData()
+        try:
+            self._class_service.assign_start_location(
+                self._competition, class_id, location_id
+            )
+        except StartPlannerError as exc:
+            QMessageBox.warning(self, "Lähtö", str(exc))
+            self._refresh_classes_table()
+            return
+        self._refresh_locations_table()
+        self._refresh_classes_table()
+        self._refresh_issues()
+        self._refresh_plan_and_status()
+
+    def _on_class_interval_changed(self, class_id: str, value: int) -> None:
+        try:
+            self._class_service.set_start_interval(self._competition, class_id, value)
+        except StartPlannerError as exc:
+            QMessageBox.warning(self, "Lähtöväli", str(exc))
+            self._refresh_classes_table()
+            return
+        self._refresh_plan_and_status()
 
     def _on_class_course_changed(self, class_id: str, combo: QComboBox) -> None:
         course_id = combo.currentData()
@@ -668,6 +755,58 @@ class MainWindow(QMainWindow):
             return
         self._refresh_classes_table()
         self._refresh_issues()
+        self._refresh_plan_and_status()
+
+    def _refresh_courses_table(self) -> None:
+        headers = ["Rata", "Pituus (m)", "Nousu", "1. rasti", "Rasteja", "Sarjaväli (min)"]
+        courses = sorted(self._competition.courses.values(), key=lambda c: c.name)
+        self._courses_table.clear()
+        self._courses_table.setColumnCount(len(headers))
+        self._courses_table.setHorizontalHeaderLabels(headers)
+        self._courses_table.setRowCount(len(courses))
+        readonly = Qt.ItemIsSelectable | Qt.ItemIsEnabled
+        default_gap = self._competition.settings.class_gap_min
+
+        for row, course in enumerate(courses):
+            values = [
+                course.name,
+                str(course.length_m),
+                str(course.climb_m),
+                course.first_control or "—",
+                str(len(course.controls)),
+            ]
+            for col, value in enumerate(values):
+                item = QTableWidgetItem(value)
+                item.setFlags(readonly)
+                item.setData(Qt.UserRole, course.id)
+                self._courses_table.setItem(row, col, item)
+
+            gap = QSpinBox()
+            gap.setRange(0, 60)
+            gap.setSpecialValueText(" ")
+            gap.setToolTip(f"Oletus: {default_gap} min")
+            gap.blockSignals(True)
+            gap.setValue(course.class_gap_min if course.class_gap_min is not None else 0)
+            gap.blockSignals(False)
+            gap.valueChanged.connect(
+                lambda value, course_id=course.id: self._on_course_gap_changed(
+                    course_id, value
+                )
+            )
+            self._courses_table.setCellWidget(row, 5, gap)
+
+        self._courses_table.resizeColumnsToContents()
+
+    def _on_course_gap_changed(self, course_id: str, value: int) -> None:
+        gap_min = None if value == 0 else value
+        try:
+            self._class_service.set_course_class_gap(
+                self._competition, course_id, gap_min
+            )
+        except StartPlannerError as exc:
+            QMessageBox.warning(self, "Sarjaväli", str(exc))
+            self._refresh_courses_table()
+            return
         self._refresh_plan_and_status()
 
     def _refresh_plan_and_status(self) -> None:
@@ -783,7 +922,10 @@ class MainWindow(QMainWindow):
         self._fill_table(
             self._issues_table,
             ["Vakavuus", "Sääntö", "Viesti"],
-            [[i.severity.value, i.rule_id, i.message] for i in report.issues],
+            [
+                [_SEVERITY_FI.get(i.severity, i.severity.value), i.rule_id, i.message]
+                for i in report.issues
+            ],
         )
 
     def _refresh_tree(self) -> None:
@@ -797,7 +939,7 @@ class MainWindow(QMainWindow):
             "Lähtökaavio",
             "Aikajana",
             "Ruudukko",
-            "Issues",
+            "Huomiot",
         ):
             root.addChild(QTreeWidgetItem([label]))
         self._tree.addTopLevelItem(root)

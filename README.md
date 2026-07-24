@@ -27,11 +27,11 @@ python -m startplanner.main
 
 1. Tuo IOF CourseData (Condes-export)
 2. Tuo IRMA-ilmoittautumiset (`= ILMOIT` CSV)
-3. Kytke puuttuvat sarjat radoihin Sarjat-välilehdellä
-4. Säädä kilpailun asetukset tarvittaessa
-5. Valitse / lisää lähtö, muodosta lähtökaavio
-6. Tuo myöhäiset ilmoittautumiset ja päivitä kaavio tarvittaessa
-7. Tarkista laatu, aikajana ja issues; optimoi tai siirrä/lukitse sarjoja
+3. Kytke puuttuvat sarjat radoihin Sarjat-välilehdellä; säädä lähtö ja lähtöväli tarvittaessa
+4. Säädä kilpailun asetukset ja tarvittaessa radan sarjaväli Radat-välilehdellä
+5. Hallitse lähtöjä Lähdöt-välilehdellä; muodosta lähtökaavio
+6. Tuo jälki-ilmoittautuneet ja päivitä kaavio tarvittaessa
+7. Tarkista laatu, aikajana ja Huomiot; optimoi tai siirrä/lukitse sarjoja
 8. Vie Exceliin / CSV:hen
 9. Tallenna projekti `.spc`-tiedostoon
 
@@ -45,4 +45,4 @@ pytest
 
 ## Versio
 
-Nykyinen kehitysversio: **0.5.0** (sarja↔rata, myöhäiset ilmot, kaavion päivitys).
+Nykyinen kehitysversio: **0.5.0** (sarja/rata-yliajot, Lähdöt, Huomiot, tasapainotettu kaavio).

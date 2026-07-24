@@ -3,7 +3,11 @@
 ## 0.5.0
 
 - Sarja ↔ rata -editori Sarjat-välilehdellä (puuttuvat korostettu)
-- Myöhäiset ilmoittautumiset + lähtökaavion päivitys (olemassa olevat ajat säilyvät)
+- Sarjat: muokattava lähtö ja lähtöväli
+- Radat: yliajettava sarjaväli (`Course.class_gap_min`)
+- Lähdöt-välilehti (lista, nimeäminen, lisää lähtö)
+- Jälki-ilmoittautuneet + lähtökaavion päivitys (olemassa olevat ajat säilyvät)
+- Issues → Huomiot (vakavuudet suomeksi)
 - `SchedulerService.update()` inkrementaaliseen kaavion päivitykseen
 - Scheduler: eri radat voivat lähteä rinnakkain; sama 1. rasti max 1/min
 - Tasaisempi kilpailijavirta: pitkät sarjat ensin, lyhyet täyttävät tyhjät minuutit
@@ -12,7 +16,6 @@
 - Automaattinen tavoitekuorma ja 2 min -sarjojen parillinen/pariton vaiheistus
 - Ruudukko-näkymä: minuutti × rata, sarjan nimi solussa
 - Varoitus `plan.window_overflow`, jos aikataulu ylittää pullonkaulan
-
 ## 0.4.0
 
 - Laatupisteet (0–100) ja kevyt optimoija lähtökaaviolle

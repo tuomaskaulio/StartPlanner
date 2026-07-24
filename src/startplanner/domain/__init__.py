@@ -34,6 +34,8 @@ class Course:
     length_m: int = 0
     climb_m: int = 0
     controls: list[str] = field(default_factory=list)
+    # None = use competition Settings.class_gap_min
+    class_gap_min: int | None = None
 
     @property
     def first_control(self) -> str | None:
@@ -187,6 +189,13 @@ class Competition:
         if n <= 1:
             return first_start
         return first_start + timedelta(minutes=(n - 1) * rc.start_interval_min)
+
+    def class_gap_for_course(self, course_id: str | None) -> int:
+        if course_id:
+            course = self.courses.get(course_id)
+            if course is not None and course.class_gap_min is not None:
+                return course.class_gap_min
+        return self.settings.class_gap_min
 
     def competition_start_datetime(self) -> datetime:
         d = self.event_date or date.today()
