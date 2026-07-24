@@ -47,3 +47,11 @@ class ExportService:
 
     def export_pdf(self, competition: Competition, path: str | Path) -> None:
         PdfExporter().write(competition, path)
+
+    def export_grid_pdf(
+        self,
+        competition: Competition,
+        path: str | Path,
+        start_location_id: str | None = None,
+    ) -> None:
+        PdfExporter().write_grid(competition, path, start_location_id)

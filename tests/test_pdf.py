@@ -20,3 +20,17 @@ def test_pdf_export_creates_file(tmp_path: Path):
     assert path.is_file()
     assert path.stat().st_size > 100
     assert path.read_bytes()[:4] == b"%PDF"
+
+
+def test_grid_pdf_export_creates_file(tmp_path: Path):
+    competition = ImportService().import_coursedata(
+        next(SAMPLE_SMALL.glob("*_coursedata.xml"))
+    )
+    ImportService().import_entries(competition, SAMPLE_SMALL / "ilmoittautumiset.csv")
+    SchedulerService().apply(competition)
+    loc_id = next(iter(competition.plans))
+    path = tmp_path / "ruudukko.pdf"
+    ExportService().export_grid_pdf(competition, path, loc_id)
+    assert path.is_file()
+    assert path.stat().st_size > 100
+    assert path.read_bytes()[:4] == b"%PDF"

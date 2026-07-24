@@ -21,7 +21,7 @@ Asennuspaketin (macOS/Windows) rakentaminen: ks. [README](../README.md#asennuspa
 6. **Kilpailun asetukset** – kilpailun nimi, oletusväli, sarjaväli, kilpailun aloitusaika.
 7. **Muodosta lähtökaavio** (aktiivinen lähtö). Tarkista **Huomiot**, aikajana ja ruudukko.
 8. **Jälki-ilmoittautuneet** – tuo uusi IRMA-CSV ja päivitä kaavio (olemassa olevat ajat säilyvät).
-9. **Vie** Excel / CSV / PDF. **Tallenna** projekti `.spc`-tiedostoon.
+9. **Vie** Excel / CSV / PDF / Ruudukko PDF. **Tallenna** projekti `.spc`-tiedostoon.
 
 ## Tuontiformaatit
 
@@ -45,6 +45,7 @@ Asennuspaketin (macOS/Windows) rakentaminen: ks. [README](../README.md#asennuspa
 - **Excel** – Lähtökaavio (sarjajärjestyksessä), Yhteenveto (laatupisteet), Ruudukko per lähtö
 - **CSV** – sama kaaviosisältö kuin Excelin Lähtökaavio
 - **PDF** – kansilehti + kaavio per lähtö (tulosta PDF-ohjelmalla)
+- **Ruudukko PDF** – maisema-A4, aktiivisen lähdön minuutti × rata -ruudukko
 
 ## Vinkkejä
 

@@ -8,6 +8,7 @@ from fpdf import FPDF
 
 from startplanner.domain import Competition
 from startplanner.exporters.excel import _plan_rows
+from startplanner.services.course_grid import CourseGrid, build_course_grid
 
 _FONT_CANDIDATES = (
     Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
@@ -88,6 +89,118 @@ class PdfExporter:
                 pdf.ln(6)
 
         pdf.output(str(path))
+
+    def write_grid(
+        self,
+        competition: Competition,
+        path: str | Path,
+        start_location_id: str | None = None,
+    ) -> None:
+        """Landscape PDF of the minute × course grid for one or more starts."""
+        pdf = FPDF(orientation="L", unit="mm", format="A4")
+        pdf.set_auto_page_break(auto=True, margin=12)
+        font_name = self._setup_font(pdf)
+
+        location_ids = (
+            [start_location_id]
+            if start_location_id
+            else sorted(competition.plans.keys())
+        )
+        wrote_any = False
+        for loc_id in location_ids:
+            plan = competition.plan_for(loc_id)
+            if not plan or not plan.entries:
+                continue
+            grid = build_course_grid(competition, plan)
+            if not grid.minutes:
+                continue
+            wrote_any = True
+            loc = competition.start_locations.get(loc_id)
+            loc_name = loc.name if loc else loc_id
+            pdf.add_page()
+            pdf.set_font(font_name, "B", 14)
+            title = competition.name or "Kilpailu"
+            pdf.cell(
+                0,
+                8,
+                text=f"{title} — Ruudukko — {loc_name}",
+                new_x="LMARGIN",
+                new_y="NEXT",
+            )
+            pdf.ln(2)
+            self._write_grid_table(pdf, grid, font_name)
+
+        if not wrote_any:
+            pdf.add_page()
+            pdf.set_font(font_name, size=11)
+            pdf.cell(
+                0,
+                8,
+                text="Ei ruudukkoa (muodosta ensin lähtökaavio).",
+                new_x="LMARGIN",
+                new_y="NEXT",
+            )
+
+        pdf.output(str(path))
+
+    def _write_grid_table(
+        self, pdf: FPDF, grid: CourseGrid, font_name: str
+    ) -> None:
+        headers = ["Aika", "Yht"] + [
+            f"{col.course_name} ({col.first_control or '—'})" for col in grid.columns
+        ]
+        usable = pdf.w - pdf.l_margin - pdf.r_margin
+        n_cols = len(headers)
+        time_w = 14.0
+        total_w = 10.0
+        rest = max(usable - time_w - total_w, 20.0)
+        course_w = rest / max(n_cols - 2, 1)
+        if course_w < 12:
+            course_w = 12.0
+            rest = course_w * max(n_cols - 2, 1)
+            scale = usable / (time_w + total_w + rest)
+            time_w *= scale
+            total_w *= scale
+            course_w *= scale
+        widths = [time_w, total_w] + [course_w] * (n_cols - 2)
+
+        row_h = 5.0
+        font_size = 7 if n_cols <= 10 else 6
+        pdf.set_font(font_name, "B", font_size)
+        for width, header in zip(widths, headers):
+            pdf.cell(width, row_h + 1, text=self._clip(str(header), width), border=1)
+        pdf.ln()
+
+        pdf.set_font(font_name, size=font_size)
+        for minute in grid.minutes:
+            if pdf.get_y() > pdf.h - pdf.b_margin - row_h * 2:
+                pdf.add_page()
+                pdf.set_font(font_name, "B", font_size)
+                for width, header in zip(widths, headers):
+                    pdf.cell(
+                        width,
+                        row_h + 1,
+                        text=self._clip(str(header), width),
+                        border=1,
+                    )
+                pdf.ln()
+                pdf.set_font(font_name, size=font_size)
+
+            values = [
+                minute.strftime("%H:%M"),
+                str(grid.total(minute)),
+            ] + [grid.cell(minute, col.course_id) for col in grid.columns]
+            for width, value in zip(widths, values):
+                pdf.cell(width, row_h, text=self._clip(str(value), width), border=1)
+            pdf.ln()
+
+    @staticmethod
+    def _clip(text: str, width_mm: float) -> str:
+        """Rough clip so long class names fit a narrow cell."""
+        max_chars = max(int(width_mm / 1.8), 3)
+        if len(text) <= max_chars:
+            return text
+        return text[: max_chars - 1] + "…"
 
     @staticmethod
     def _setup_font(pdf: FPDF) -> str:

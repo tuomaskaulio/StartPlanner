@@ -154,6 +154,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction("Vie Excel…", self._export_excel)
         file_menu.addAction("Vie CSV…", self._export_csv)
         file_menu.addAction("Vie PDF…", self._export_pdf)
+        file_menu.addAction("Vie ruudukko PDF…", self._export_grid_pdf)
 
         edit_menu = menu.addMenu("Muokkaa")
         self._undo_action = edit_menu.addAction("Kumoa", self._undo)
@@ -631,6 +632,22 @@ class MainWindow(QMainWindow):
             path += ".pdf"
         try:
             self._export_service.export_pdf(self._competition, path)
+            self._status.showMessage(f"Viety: {path}", 4000)
+        except Exception as exc:  # noqa: BLE001
+            QMessageBox.critical(self, "Vientivirhe", str(exc))
+
+    def _export_grid_pdf(self) -> None:
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Vie ruudukko PDF", "", "PDF (*.pdf)"
+        )
+        if not path:
+            return
+        if not path.endswith(".pdf"):
+            path += ".pdf"
+        try:
+            self._export_service.export_grid_pdf(
+                self._competition, path, self._active_location_id
+            )
             self._status.showMessage(f"Viety: {path}", 4000)
         except Exception as exc:  # noqa: BLE001
             QMessageBox.critical(self, "Vientivirhe", str(exc))

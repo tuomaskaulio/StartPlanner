@@ -3,6 +3,7 @@
 ## 0.6.0
 
 - PDF-vienti (kansilehti + lähtökaavio per lähtö, sarjajärjestyksessä)
+- Ruudukko-PDF (maisema-A4, aktiivinen lähtö)
 - Excel/CSV: rivit sarjajärjestyksessä; Excelissä Ruudukko-välilehti per lähtö
 - Usean CourseData-XML:n tuonti kerralla
 - Kilpailun nimi kilpailun asetuksissa
