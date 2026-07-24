@@ -17,11 +17,40 @@ class ClassService:
             raise StartPlannerError(f"Tuntematon sarja: {class_id}")
         if course_id is not None and course_id not in competition.courses:
             raise StartPlannerError(f"Tuntematon rata: {course_id}")
+        prev = rc.course_id
         rc.course_id = course_id
         if course_id:
             competition.class_course_map[rc.name] = course_id
+            if prev != course_id:
+                siblings = [
+                    c
+                    for c in competition.classes.values()
+                    if c.course_id == course_id and c.id != class_id
+                ]
+                rc.course_order = (
+                    max((c.course_order for c in siblings), default=-1) + 1
+                )
         elif rc.name in competition.class_course_map:
             del competition.class_course_map[rc.name]
+
+    def reorder_course_classes(
+        self, competition: Competition, course_id: str, class_ids: list[str]
+    ) -> None:
+        if course_id not in competition.courses:
+            raise StartPlannerError(f"Tuntematon rata: {course_id}")
+        if len(class_ids) != len(set(class_ids)):
+            raise StartPlannerError("Ratajärjestys sisältää duplikaatteja")
+        expected = {
+            rc.id
+            for rc in competition.classes.values()
+            if rc.course_id == course_id
+        }
+        if set(class_ids) != expected:
+            raise StartPlannerError(
+                "Järjestyksen on sisällettävä kaikki radan sarjat"
+            )
+        for index, class_id in enumerate(class_ids):
+            competition.classes[class_id].course_order = index
 
     def assign_start_location(
         self, competition: Competition, class_id: str, start_location_id: str

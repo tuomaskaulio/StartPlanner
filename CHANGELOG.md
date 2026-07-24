@@ -10,6 +10,7 @@
 - Käyttäjäohje (`docs/user-guide.md`)
 - PyInstaller-skriptit macOS/Windows (`packaging/`)
 - `course_grid` siirretty services-kerrokseen (vienti ei riipu GUI:sta)
+- Ratajärjestys: erillinen `course_order` saman radan sarjoille (DnD + scheduler)
 
 ## 0.5.0
 

@@ -56,7 +56,9 @@ class RaceClass:
     start_location_id: str | None = None
     start_interval_min: int = 2
     estimated_speed: float = 0.0
-    sort_order: int = 0
+    sort_order: int = 0  # display order (Sarjajärjestys)
+    # Order of classes sharing the same course (scheduler sequence)
+    course_order: int = 0
     locked: bool = False
 
 

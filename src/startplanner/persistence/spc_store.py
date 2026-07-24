@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS classes (
     start_interval_min INTEGER NOT NULL,
     estimated_speed REAL NOT NULL,
     sort_order INTEGER NOT NULL,
+    course_order INTEGER NOT NULL,
     locked INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS competitors (
@@ -183,8 +184,8 @@ class SpcStore:
         for rc in competition.classes.values():
             conn.execute(
                 "INSERT INTO classes(id, name, course_id, start_location_id, "
-                "start_interval_min, estimated_speed, sort_order, locked) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "start_interval_min, estimated_speed, sort_order, course_order, locked) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     rc.id,
                     rc.name,
@@ -193,6 +194,7 @@ class SpcStore:
                     rc.start_interval_min,
                     rc.estimated_speed,
                     rc.sort_order,
+                    rc.course_order,
                     int(rc.locked),
                 ),
             )
@@ -307,7 +309,13 @@ class SpcStore:
             info[1] for info in conn.execute("PRAGMA table_info(classes)")
         ]
         has_loc = "start_location_id" in class_cols
-        if has_loc:
+        has_course_order = "course_order" in class_cols
+        if has_loc and has_course_order:
+            class_sql = (
+                "SELECT id, name, course_id, start_location_id, start_interval_min, "
+                "estimated_speed, sort_order, course_order, locked FROM classes"
+            )
+        elif has_loc:
             class_sql = (
                 "SELECT id, name, course_id, start_location_id, start_interval_min, "
                 "estimated_speed, sort_order, locked FROM classes"
@@ -318,7 +326,7 @@ class SpcStore:
                 "sort_order, locked FROM classes"
             )
         for r in conn.execute(class_sql):
-            if has_loc:
+            if has_loc and has_course_order:
                 competition.add_class(
                     RaceClass(
                         id=r[0],
@@ -328,6 +336,21 @@ class SpcStore:
                         start_interval_min=r[4],
                         estimated_speed=r[5],
                         sort_order=r[6],
+                        course_order=r[7],
+                        locked=bool(r[8]),
+                    )
+                )
+            elif has_loc:
+                competition.add_class(
+                    RaceClass(
+                        id=r[0],
+                        name=r[1],
+                        course_id=r[2],
+                        start_location_id=r[3] or DEFAULT_START_LOCATION_ID,
+                        start_interval_min=r[4],
+                        estimated_speed=r[5],
+                        sort_order=r[6],
+                        course_order=0,
                         locked=bool(r[7]),
                     )
                 )
@@ -341,6 +364,7 @@ class SpcStore:
                         start_interval_min=r[3],
                         estimated_speed=r[4],
                         sort_order=r[5],
+                        course_order=0,
                         locked=bool(r[6]),
                     )
                 )

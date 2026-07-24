@@ -34,7 +34,8 @@ Asennuspaketin (macOS/Windows) rakentaminen: ks. [README](../README.md#asennuspa
 
 - **Lähdöt** – nimet, 1. lähtöaika (tai kilpailun oletus), sarjojen määrä
 - **Sarjat** – rata, lähtö, lähtöväli, järjestysnumero
-- **Sarjajärjestys** – drag & drop
+- **Sarjajärjestys** – drag & drop näyttöjärjestys (Lähtökaavio / Excel)
+- **Ratajärjestys** – drag & drop: missä järjestyksessä saman radan sarjat lähtevät
 - **Lähtökaavio** – näyttö *Sarjajärjestys* tai *Aika*
 - **Ruudukko** – minuutti × rata
 - **Huomiot** – validointiviestit (Virhe / Varoitus / Huomautus)

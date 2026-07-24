@@ -206,7 +206,10 @@ class MainWindow(QMainWindow):
         self._class_order_page = QWidget()
         class_order_layout = QVBoxLayout(self._class_order_page)
         class_order_layout.addWidget(
-            QLabel("Raahaa sarjoja järjestääksesi ne. Järjestys näkyy Lähtökaaviossa.")
+            QLabel(
+                "Raahaa sarjoja näyttöjärjestyksen mukaan (Lähtökaavio / Excel). "
+                "Radan lähtöjärjestys on omassa välilehdessä."
+            )
         )
         self._class_order_list = QListWidget()
         self._class_order_list.setDragDropMode(QAbstractItemView.InternalMove)
@@ -214,6 +217,32 @@ class MainWindow(QMainWindow):
         self._class_order_list.setSelectionMode(QAbstractItemView.SingleSelection)
         self._class_order_list.model().rowsMoved.connect(self._on_class_order_rows_moved)
         class_order_layout.addWidget(self._class_order_list)
+
+        self._course_order_page = QWidget()
+        course_order_layout = QVBoxLayout(self._course_order_page)
+        course_order_layout.addWidget(
+            QLabel(
+                "Valitse rata ja raahaa sarjat siihen järjestykseen, "
+                "jossa ne lähtevät tällä radalla."
+            )
+        )
+        course_pick_row = QHBoxLayout()
+        course_pick_row.addWidget(QLabel("Rata:"))
+        self._course_order_combo = QComboBox()
+        self._course_order_combo.currentIndexChanged.connect(
+            self._refresh_course_order_list
+        )
+        course_pick_row.addWidget(self._course_order_combo, stretch=1)
+        course_order_layout.addLayout(course_pick_row)
+        self._course_order_list = QListWidget()
+        self._course_order_list.setDragDropMode(QAbstractItemView.InternalMove)
+        self._course_order_list.setDefaultDropAction(Qt.MoveAction)
+        self._course_order_list.setSelectionMode(QAbstractItemView.SingleSelection)
+        self._course_order_list.model().rowsMoved.connect(
+            self._on_course_order_rows_moved
+        )
+        course_order_layout.addWidget(self._course_order_list)
+
         self._courses_table = QTableWidget()
         self._competitors_table = QTableWidget()
         self._plan_page = QWidget()
@@ -238,6 +267,7 @@ class MainWindow(QMainWindow):
         self._tabs.addTab(self._locations_page, "Lähdöt")
         self._tabs.addTab(self._classes_table, "Sarjat")
         self._tabs.addTab(self._class_order_page, "Sarjajärjestys")
+        self._tabs.addTab(self._course_order_page, "Ratajärjestys")
         self._tabs.addTab(self._courses_table, "Radat")
         self._tabs.addTab(self._competitors_table, "Kilpailijat")
         self._tabs.addTab(self._plan_page, "Lähtökaavio")
@@ -619,6 +649,7 @@ class MainWindow(QMainWindow):
             "Lähdöt": self._locations_page,
             "Sarjat": self._classes_table,
             "Sarjajärjestys": self._class_order_page,
+            "Ratajärjestys": self._course_order_page,
             "Radat": self._courses_table,
             "Kilpailijat": self._competitors_table,
             "Lähtökaavio": self._plan_page,
@@ -654,6 +685,7 @@ class MainWindow(QMainWindow):
         self._refresh_locations_table()
         self._refresh_classes_table()
         self._refresh_class_order_list()
+        self._refresh_course_order_combo()
         self._refresh_courses_table()
         self._fill_table(
             self._competitors_table,
@@ -808,6 +840,86 @@ class MainWindow(QMainWindow):
         self._refresh_classes_table()
         self._refresh_plan_and_status()
 
+    def _refresh_course_order_combo(self) -> None:
+        current = self._course_order_combo.currentData()
+        self._course_order_combo.blockSignals(True)
+        self._course_order_combo.clear()
+        # Prefer courses that already have assigned classes.
+        courses_with_classes = [
+            course
+            for course in sorted(
+                self._competition.courses.values(), key=lambda c: c.name
+            )
+            if any(
+                rc.course_id == course.id for rc in self._competition.classes.values()
+            )
+        ]
+        courses = courses_with_classes or sorted(
+            self._competition.courses.values(), key=lambda c: c.name
+        )
+        for course in courses:
+            n = sum(
+                1
+                for rc in self._competition.classes.values()
+                if rc.course_id == course.id
+            )
+            label = f"{course.name} ({n})" if n else course.name
+            self._course_order_combo.addItem(label, course.id)
+        if current is not None:
+            idx = self._course_order_combo.findData(current)
+            if idx >= 0:
+                self._course_order_combo.setCurrentIndex(idx)
+        elif self._course_order_combo.count():
+            self._course_order_combo.setCurrentIndex(0)
+        self._course_order_combo.blockSignals(False)
+        self._refresh_course_order_list()
+
+    def _refresh_course_order_list(self, *_args: object) -> None:
+        self._course_order_list.blockSignals(True)
+        self._course_order_list.clear()
+        course_id = self._course_order_combo.currentData()
+        if course_id:
+            classes = sorted(
+                (
+                    rc
+                    for rc in self._competition.classes.values()
+                    if rc.course_id == course_id
+                ),
+                key=lambda c: (c.course_order, c.name),
+            )
+            for rc in classes:
+                item = QListWidgetItem(rc.name)
+                item.setData(Qt.UserRole, rc.id)
+                self._course_order_list.addItem(item)
+            if not classes:
+                hint = QListWidgetItem("(Ei sarjoja tällä radalla — kytke Sarjat-välilehdellä)")
+                hint.setFlags(Qt.NoItemFlags)
+                self._course_order_list.addItem(hint)
+        self._course_order_list.blockSignals(False)
+
+    def _on_course_order_rows_moved(self, *_args: object) -> None:
+        course_id = self._course_order_combo.currentData()
+        if not course_id:
+            return
+        class_ids: list[str] = []
+        for row in range(self._course_order_list.count()):
+            item = self._course_order_list.item(row)
+            if item is None:
+                continue
+            class_id = item.data(Qt.UserRole)
+            if class_id:
+                class_ids.append(class_id)
+        try:
+            self._class_service.reorder_course_classes(
+                self._competition, course_id, class_ids
+            )
+        except StartPlannerError as exc:
+            QMessageBox.warning(self, "Ratajärjestys", str(exc))
+            self._refresh_course_order_list()
+            return
+        self._refresh_classes_table()
+        self._refresh_plan_and_status()
+
     def _refresh_classes_table(self) -> None:
         headers = ["Järjestys", "Sarja", "Lähtö", "Rata", "Kilpailijoita", "Lähtöväli"]
         classes = sorted(
@@ -939,6 +1051,7 @@ class MainWindow(QMainWindow):
             self._refresh_classes_table()
             return
         self._refresh_classes_table()
+        self._refresh_course_order_combo()
         self._refresh_issues()
         self._refresh_plan_and_status()
 
@@ -1135,6 +1248,7 @@ class MainWindow(QMainWindow):
             "Lähdöt",
             "Sarjat",
             "Sarjajärjestys",
+            "Ratajärjestys",
             "Radat",
             "Kilpailijat",
             "Lähtökaavio",

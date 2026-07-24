@@ -51,8 +51,14 @@ class SchedulerService:
                 elif rc and (rc.locked or entry.locked):
                     locked_times[entry.class_id] = entry.first_start_time
 
-        bottleneck_classes = [rc for rc in classes if rc.course_id == bottleneck_id]
+        bottleneck_classes = sorted(
+            [rc for rc in classes if rc.course_id == bottleneck_id],
+            key=lambda rc: (rc.course_order, rc.name),
+        )
         other_classes = [rc for rc in classes if rc.course_id != bottleneck_id]
+        other_classes = self._order_other_classes(
+            competition, other_classes, course_durations
+        )
 
         # Pass 1: spine + others (may overflow estimated window).
         occupied: dict[str, set[datetime]] = {}
@@ -372,9 +378,34 @@ class SchedulerService:
             stream = self._class_stream_minutes(rc, n)
             course = competition.course_for_class(rc)
             length = course.length_m if course else 0
-            return (-stream, -rc.estimated_speed, -length, rc.sort_order, rc.name)
+            # Within a course, course_order wins; across courses prefer long streams.
+            return (
+                rc.course_id or "",
+                rc.course_order,
+                -stream,
+                -rc.estimated_speed,
+                -length,
+                rc.name,
+            )
 
         return sorted(classes, key=sort_key)
+
+    @staticmethod
+    def _order_other_classes(
+        competition: Competition,
+        other_classes: list[RaceClass],
+        course_durations: dict[str, int],
+    ) -> list[RaceClass]:
+        """Longer courses first; within a course respect course_order."""
+
+        def key(rc: RaceClass) -> tuple:
+            cid = rc.course_id or ""
+            dur = course_durations.get(cid, 0)
+            course = competition.courses.get(cid)
+            cname = course.name if course else cid
+            return (-dur, cname, rc.course_order, rc.name)
+
+        return sorted(other_classes, key=key)
 
     @staticmethod
     def _class_stream_minutes(rc: RaceClass, count: int) -> int:

@@ -97,6 +97,7 @@ Sarjalla on vähintään seuraavat tiedot:
 | arvioitu rata-aika | minuuttia                       |
 | lähtöväli          | oletus 2 min                    |
 | järjestys          | `sort_order` (näyttö/kaavio)    |
+| ratajärjestys      | `course_order` (saman radan lähtöjärjestys) |
 | lukittu            | voiko ohjelma siirtää sarjaa    |
 
 ---
