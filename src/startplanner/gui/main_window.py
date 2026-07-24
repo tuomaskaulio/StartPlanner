@@ -391,6 +391,32 @@ class MainWindow(QMainWindow):
         self._auto_build_schedule = dlg.auto_build
         self._history_baseline()
         self._refresh_all()
+        self._prompt_course_data()
+
+    def _prompt_course_data(self) -> None:
+        """After creating a new competition, prompt to import course data."""
+        reply = QMessageBox.question(
+            self,
+            "Tuonti",
+            "Uusi kilpailu luotu.\n\nHalutaanko tuoda ratatiedot (IOF CourseData XML) nyt?",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if reply == QMessageBox.Yes:
+            self._import_coursedata()
+            self._prompt_entries()
+
+    def _prompt_entries(self) -> None:
+        """After importing course data, prompt to import entries."""
+        if not self._competition.courses or not self._competition.classes:
+            return
+        reply = QMessageBox.question(
+            self,
+            "Tuonti",
+            "Halutaanko tuoda ilmoittautumiset (IRMA Pirilä CSV) nyt?",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if reply == QMessageBox.Yes:
+            self._import_entries()
 
     def _maybe_auto_build_schedule(self) -> None:
         """If auto-build is enabled and all prerequisites are met, prompt to build schedule."""

@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Uuden kilpailun luominen: dialogi kysyy kaikki tarvittavat tiedot (nimi, päivämäärä, lähtöväli, sarjojen väli, aloitusaika) yhdellä kerralla
+- Uuden kilpailun jälkeen ohjelman ehdottaa automaattisesti ratatietojen ja ilmoittautumisten tuomista
 - Lähtökaavion automaattinen ehdotus tuonnin jälkeen, kun kaikki tiedot ovat valmiita
 
 ## 0.6.0
