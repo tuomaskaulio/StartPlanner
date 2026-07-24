@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Uuden kilpailun luominen: dialogi kysyy kaikki tarvittavat tiedot (nimi, päivämäärä, lähtöväli, sarjojen väli, aloitusaika) yhdellä kerralla
+- Lähtökaavion automaattinen ehdotus tuonnin jälkeen, kun kaikki tiedot ovat valmiita
+
 ## 0.6.0
 
 - PDF-vienti (kansilehti + lähtökaavio per lähtö, sarjajärjestyksessä)

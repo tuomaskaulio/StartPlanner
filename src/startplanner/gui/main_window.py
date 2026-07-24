@@ -3,16 +3,17 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from uuid import uuid4
 
-from PySide6.QtCore import Qt, QTime
+from PySide6.QtCore import QDate, Qt, QTime
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QComboBox,
+    QDateEdit,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
@@ -39,7 +40,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from startplanner.domain import ClassStart, ClassStartPlan, Competition, StartLocation
+from startplanner.domain import (
+    ClassStart,
+    ClassStartPlan,
+    Competition,
+    Settings,
+    StartLocation,
+)
 from startplanner.domain.errors import ScheduleError, StartPlannerError
 from startplanner.services.class_service import ClassService
 from startplanner.services.competition_service import CompetitionService
@@ -97,6 +104,81 @@ class SettingsDialog(QDialog):
         self._competition.settings.competition_start = dtime(t.hour(), t.minute())
 
 
+class NewCompetitionDialog(QDialog):
+    """Dialog for creating a new competition with all required settings."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Uusi kilpailu")
+        self.setModal(True)
+        layout = QFormLayout(self)
+
+        self._name = QLineEdit()
+        self._name.setPlaceholderText("esim. Kevyttely 2026")
+        layout.addRow("Kilpailun nimi *", self._name)
+
+        self._date = QDateEdit()
+        self._date.setDisplayFormat("dd.MM.yyyy")
+        self._date.setDate(QDate.currentDate())
+        self._date.setCalendarPopup(True)
+        layout.addRow("Päivämäärä", self._date)
+
+        self._interval = QSpinBox()
+        self._interval.setRange(1, 30)
+        self._interval.setValue(2)
+        layout.addRow("Oletuslähtöväli (min)", self._interval)
+
+        self._gap = QSpinBox()
+        self._gap.setRange(0, 60)
+        self._gap.setValue(2)
+        layout.addRow("Sarjojen väli (min)", self._gap)
+
+        self._start = QTimeEdit()
+        self._start.setDisplayFormat("HH:mm")
+        self._start.setTime(QTime(12, 0))
+        layout.addRow("Kilpailun aloitusaika", self._start)
+
+        self._auto_build = QCheckBox("Luo lähtökaavio kun tiedot on tuotu")
+        self._auto_build.setChecked(True)
+        layout.addRow(self._auto_build)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addRow(buttons)
+
+    def accept(self) -> None:
+        if not self._name.text().strip():
+            QMessageBox.warning(self, "Täytä kentät", "Kilpailun nimi on pakollinen.")
+            return
+        super().accept()
+
+    @property
+    def name(self) -> str:
+        return self._name.text().strip()
+
+    @property
+    def event_date(self) -> date:
+        return self._date.date().toPython()
+
+    @property
+    def start_interval(self) -> int:
+        return self._interval.value()
+
+    @property
+    def class_gap(self) -> int:
+        return self._gap.value()
+
+    @property
+    def start_time(self) -> time:
+        t = self._start.time()
+        return time(t.hour(), t.minute())
+
+    @property
+    def auto_build(self) -> bool:
+        return self._auto_build.isChecked()
+
+
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
@@ -107,6 +189,7 @@ class MainWindow(QMainWindow):
         self._competition.ensure_default_start_location()
         self._active_location_id = next(iter(self._competition.start_locations))
         self._project_path: Path | None = None
+        self._auto_build_schedule: bool = False
         self._class_service = ClassService()
         self._competition_service = CompetitionService()
         self._import_service = ImportService()
@@ -291,12 +374,42 @@ class MainWindow(QMainWindow):
         self._redo_action.setEnabled(self._history.can_redo())
 
     def _new_project(self) -> None:
-        self._competition = Competition(name="Uusi kilpailu")
-        self._competition.ensure_default_start_location()
+        dlg = NewCompetitionDialog(self)
+        if dlg.exec() != QDialog.Accepted:
+            return
+        self._competition = self._competition_service.new_competition(
+            name=dlg.name,
+            event_date=dlg.event_date,
+            settings=Settings(
+                default_start_interval_min=dlg.start_interval,
+                class_gap_min=dlg.class_gap,
+                competition_start=dlg.start_time,
+            ),
+        )
         self._active_location_id = next(iter(self._competition.start_locations))
         self._project_path = None
+        self._auto_build_schedule = dlg.auto_build
         self._history_baseline()
         self._refresh_all()
+
+    def _maybe_auto_build_schedule(self) -> None:
+        """If auto-build is enabled and all prerequisites are met, prompt to build schedule."""
+        if not self._auto_build_schedule:
+            return
+        comp = self._competition
+        if not comp.courses or not comp.classes or not comp.competitors:
+            return
+        # Check that all classes have a course assigned
+        if any(not rc.course_id for rc in comp.classes.values()):
+            return
+        reply = QMessageBox.question(
+            self,
+            "Muodosta lähtökaavio",
+            "Kaikki tiedot on tuotu. Muodostetaanko lähtökaavio nyt?",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if reply == QMessageBox.Yes:
+            self._build_schedule()
 
     def _open_project(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Avaa projekti", "", "StartPlanner (*.spc)")
@@ -355,6 +468,7 @@ class MainWindow(QMainWindow):
             self._active_location_id = next(iter(self._competition.start_locations))
             self._history_baseline()
             self._refresh_all()
+            self._maybe_auto_build_schedule()
             self._status.showMessage(f"Ratatiedot tuotu: {len(paths)} tiedostoa", 4000)
         except StartPlannerError as exc:
             QMessageBox.critical(self, "Tuontivirhe", str(exc))
@@ -379,6 +493,7 @@ class MainWindow(QMainWindow):
             before = len(self._competition.competitors)
             n = self._import_service.import_entries(self._competition, path)
             self._refresh_all()
+            self._maybe_auto_build_schedule()
             self._status.showMessage(f"Tuotu {n} kilpailijaa", 4000)
             if had_plan and len(self._competition.competitors) > before:
                 reply = QMessageBox.question(

@@ -97,3 +97,28 @@ def test_competitor_count():
     c.add_class(RaceClass(id="1", name="H21", course_id="c"))
     c.add_competitor(Competitor(id="a", first_name="A", last_name="B", class_id="1"))
     assert c.competitor_count("1") == 1
+
+
+def test_new_competition_with_settings():
+    """CompetitionService.new_competition accepts name, event_date, and settings."""
+    from datetime import date
+
+    from startplanner.domain import Settings
+    from startplanner.services.competition_service import CompetitionService
+
+    service = CompetitionService()
+    competition = service.new_competition(
+        name="Testikilpailu",
+        event_date=date(2026, 6, 15),
+        settings=Settings(
+            default_start_interval_min=3,
+            class_gap_min=5,
+            competition_start=time(10, 30),
+        ),
+    )
+    assert competition.name == "Testikilpailu"
+    assert competition.event_date == date(2026, 6, 15)
+    assert competition.settings.default_start_interval_min == 3
+    assert competition.settings.class_gap_min == 5
+    assert competition.settings.competition_start == time(10, 30)
+    assert DEFAULT_START_LOCATION_ID in competition.start_locations
