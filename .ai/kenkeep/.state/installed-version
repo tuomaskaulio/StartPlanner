@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "package": "kenkeep",
+  "version": "1.16.1",
+  "installed_at": "2026-07-24T09:45:12.711Z",
+  "harnesses": [
+    "cursor",
+    "claude",
+    "codex"
+  ]
+}
