@@ -257,7 +257,7 @@ class ValidationService:
         bottleneck_id = scheduler._bottleneck_course_id(competition, durations)
         if not bottleneck_id or not durations:
             return []
-        start = competition.competition_start_datetime()
+        start = competition.start_datetime_for(plan.start_location_id)
         window_end = scheduler._schedule_window_end(start, durations)
         last_start: datetime | None = None
         for entry in plan.entries:

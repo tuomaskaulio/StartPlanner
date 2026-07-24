@@ -90,13 +90,34 @@ Sisältää:
 
 **Tavoite:** päivittäiset aukot ennen v1.0:aa.
 
-**Tila:** toteutettu sovelluksessa **0.5.0** (PDF ja issue-korjausehdotukset myöhemmin).
+**Tila:** toteutettu sovelluksessa **0.5.0**.
 
 Sisältää:
 
 - manuaalinen sarja ↔ rata -kytkentä (AM-aukot tms.)
-- myöhäiset ilmoittautumiset ja kaavion päivitys lukitukset säilyttäen
-- olemassa olevien kaavioajien säilytys `SchedulerService.update()`-kutsulla
+- jälki-ilmoittautumiset ja kaavion päivitys lukitukset / ajat säilyttäen
+- `SchedulerService.update()` olemassa olevien aikojen säilytykseen
+- rinnakkaiset radat (sama 1. rasti max 1/min), pullonkaulaikkuna, tavoitekuorma
+- Ruudukko-näkymä; Lähdöt-välilehti; lähdön/radan/sarjan yliajot
+- Sarjajärjestys (spinbox + DnD-välilehti); Huomiot-suomennos
+
+---
+
+# 16.6.2 v0.6 – Vienti, ohje ja paketoinnin alku
+
+**Tavoite:** järjestäjän paperi ja asennettavuus kohti v1.0:aa.
+
+**Tila:** toteutettu sovelluksessa **0.6.0**.
+
+Sisältää:
+
+- PDF-vienti (tulostus PDF-ohjelmalla)
+- Excel-ruudukkovälilehti; kaavio viennissä sarjajärjestyksessä
+- usean CourseData-tiedoston tuonti; kilpailun nimi asetuksissa
+- käyttäjäohjeen perusversio
+- PyInstaller-skriptit macOS/Windows (ei vielä notarization / MSI)
+
+Vielä auki ennen v1.0: issue-korjausehdotukset, käyttäjäasetukset, plugin-rajapinta, Large-suorituskyky, hyväksyntä oikealla kilpailulla.
 
 ---
 
@@ -110,8 +131,8 @@ Sisältää:
 - täysi validointi lajisääntöineen
 - suorituskykytavoitteet Large-aineistolla
 - regressiotestit ja hyväksymistestaus oikealla kilpailulla
-- asennuspaketit (Windows, macOS, Linux)
-- käyttäjäohjeen perusversio
+- asennuspaketit (Windows, macOS, Linux) – allekirjoitus/notarize
+- käyttäjäohjeen täydennys
 
 v1.0:n jälkeen `.spc`-muodon yhteensopivuus säilytetään.
 
@@ -177,6 +198,8 @@ Jokaisella major/minor-julkaisulla on:
 | v0.2   | Tuonti + lista-painotteinen ehdotus (legacy)  |
 | v0.3   | StartLocation + ClassStartPlan ytimenä        |
 | v0.4   | Optimointi ja UI-viimeistely                  |
+| v0.5   | Kilpailukäyttö (kytkennät, update, ruudukko)  |
+| v0.6   | PDF, ohje, paketoinnin alku                   |
 | v1.0   | Tuotantokelpoinen julkaisu                    |
 | v1.x   | Vakaus ja palaute                             |
 | v2.0   | Uudet muodot ja integraatiot                  |

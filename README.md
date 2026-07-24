@@ -23,19 +23,37 @@ startplanner
 python -m startplanner.main
 ```
 
-## Tyypillinen työnkulku (v0.5)
+## Käyttäjäohje
 
-1. Tuo IOF CourseData (Condes-export)
-2. Tuo IRMA-ilmoittautumiset (`= ILMOIT` CSV)
-3. Kytke puuttuvat sarjat radoihin Sarjat-välilehdellä; säädä lähtö ja lähtöväli tarvittaessa
-4. Säädä kilpailun asetukset ja tarvittaessa radan sarjaväli Radat-välilehdellä
-5. Hallitse lähtöjä Lähdöt-välilehdellä; muodosta lähtökaavio
+Katso [docs/user-guide.md](docs/user-guide.md).
+
+## Tyypillinen työnkulku (v0.6)
+
+1. Tuo ratatiedot (IOF CourseData 3.0, Condes) – useita XML:iä kerralla ok
+2. Tuo ilmoittautumiset (IRMA Pirilä)
+3. Kytke sarjat radoihin; säädä lähtö, väli ja Sarjajärjestys
+4. Kilpailun asetukset (nimi, ajat); tarvittaessa radan sarjaväli
+5. Lähdöt + muodosta lähtökaavio
 6. Tuo jälki-ilmoittautuneet ja päivitä kaavio tarvittaessa
-7. Tarkista laatu, aikajana ja Huomiot; optimoi tai siirrä/lukitse sarjoja
-8. Vie Exceliin / CSV:hen
-9. Tallenna projekti `.spc`-tiedostoon
+7. Tarkista Huomiot / aikajana / ruudukko; optimoi tai lukitse
+8. Vie Excel / CSV / PDF
+9. Tallenna `.spc`
 
-Esimerkkiaineistot (anonymisoidut): `samples/sample-small/` ja `samples/sample-medium/`.
+Esimerkkiaineistot: `samples/sample-small/` ja `samples/sample-medium/`.
+
+## Asennuspaketit
+
+Paikallinen PyInstaller-build (ei notarizationia / allekirjoitusta):
+
+```bash
+pip install -e ".[packaging]"
+# macOS:
+./packaging/build_macos.sh
+# Windows (PowerShell):
+./packaging/build_windows.ps1
+```
+
+Tuloste: `dist/StartPlanner/`. macOS voi varoittaa allekirjoittamattomasta sovelluksesta (Gatekeeper) — salli järjestelmäasetuksista tarvittaessa.
 
 ## Testit
 
@@ -45,4 +63,4 @@ pytest
 
 ## Versio
 
-Nykyinen kehitysversio: **0.5.0** (sarja/rata-yliajot, Lähdöt, Huomiot, tasapainotettu kaavio).
+Nykyinen kehitysversio: **0.6.0** (PDF, Excel-ruudukko, käyttäjäohje, paketoinnin alku).

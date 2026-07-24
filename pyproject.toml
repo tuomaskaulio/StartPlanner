@@ -1,18 +1,22 @@
 [project]
 name = "startplanner"
-version = "0.5.0"
+version = "0.6.0"
 description = "Orienteering start schedule planner"
 requires-python = ">=3.12"
 dependencies = [
     "PySide6",
     "lxml",
     "openpyxl",
+    "fpdf2",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",
+]
+packaging = [
+    "pyinstaller>=6.0",
 ]
 
 [project.scripts]

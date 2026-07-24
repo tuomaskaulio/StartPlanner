@@ -31,7 +31,11 @@ def test_assign_course_clears_missing_course_error():
     ClassService().assign_course(competition, rc.id, course_id)
 
     report = ValidationService().validate(competition)
-    class_errors = [i for i in report.errors if i.rule_id == "class.course" and rc.name in i.message]
+    class_errors = [
+        i
+        for i in report.errors
+        if i.rule_id == "class.course" and rc.name in i.message
+    ]
     assert class_errors == []
 
 
@@ -153,3 +157,78 @@ def test_scheduler_respects_course_class_gap():
         c.classes[ordered[0].class_id], ordered[0].first_start_time
     )
     assert ordered[1].first_start_time >= first_end + timedelta(minutes=7)
+
+
+def test_spc_roundtrip_location_first_start(tmp_path: Path):
+    from datetime import time
+
+    from startplanner.domain import StartLocation
+    from startplanner.services.competition_service import CompetitionService
+
+    competition = _medium_competition()
+    loc = StartLocation(id="start:north", name="Pohjoinen", first_start=time(8, 30))
+    competition.add_start_location(loc)
+    ClassService().set_sort_order(
+        competition, next(iter(competition.classes.values())).id, 42
+    )
+
+    path = tmp_path / "loc.spc"
+    svc = CompetitionService()
+    svc.save(competition, path)
+    loaded = svc.load(path)
+    assert loaded.start_locations[loc.id].first_start == time(8, 30)
+    assert loaded.start_datetime_for(loc.id).hour == 8
+    rc_id = next(iter(competition.classes.values())).id
+    assert loaded.classes[rc_id].sort_order == 42
+
+
+def test_scheduler_uses_location_first_start():
+    from datetime import time
+
+    from startplanner.domain import (
+        DEFAULT_START_LOCATION_ID,
+        Competition,
+        Competitor,
+        Course,
+        RaceClass,
+    )
+    from startplanner.services.scheduler_service import SchedulerService
+
+    c = Competition(name="LocStart")
+    c.settings.competition_start = time(12, 0)
+    c.ensure_default_start_location()
+    c.start_locations[DEFAULT_START_LOCATION_ID].first_start = time(10, 0)
+    c.add_course(Course(id="cA", name="A", length_m=3000, controls=["31"]))
+    c.add_class(
+        RaceClass(
+            id="h21",
+            name="H21",
+            course_id="cA",
+            start_location_id=DEFAULT_START_LOCATION_ID,
+            start_interval_min=1,
+        )
+    )
+    c.add_competitor(Competitor(id="1", first_name="A", last_name="One", class_id="h21"))
+    plan = SchedulerService().apply(c)
+    entry = plan.entry_for_class("h21")
+    assert entry is not None
+    assert entry.first_start_time.hour == 10
+    assert entry.first_start_time.minute == 0
+
+
+def test_set_sort_order():
+    competition = _medium_competition()
+    rc = next(iter(competition.classes.values()))
+    ClassService().set_sort_order(competition, rc.id, 5)
+    assert rc.sort_order == 5
+
+
+def test_reorder_classes_renumbers_sort_order():
+    competition = _medium_competition()
+    ordered = sorted(
+        competition.classes.values(), key=lambda c: (c.sort_order, c.name)
+    )
+    reversed_ids = [rc.id for rc in reversed(ordered)]
+    ClassService().reorder_classes(competition, reversed_ids)
+    for index, class_id in enumerate(reversed_ids):
+        assert competition.classes[class_id].sort_order == index

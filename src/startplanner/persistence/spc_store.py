@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS competition (
 );
 CREATE TABLE IF NOT EXISTS start_locations (
     id TEXT PRIMARY KEY,
-    name TEXT NOT NULL
+    name TEXT NOT NULL,
+    first_start TEXT
 );
 CREATE TABLE IF NOT EXISTS courses (
     id TEXT PRIMARY KEY,
@@ -155,8 +156,12 @@ class SpcStore:
         competition.ensure_default_start_location()
         for loc in competition.start_locations.values():
             conn.execute(
-                "INSERT INTO start_locations(id, name) VALUES (?, ?)",
-                (loc.id, loc.name),
+                "INSERT INTO start_locations(id, name, first_start) VALUES (?, ?, ?)",
+                (
+                    loc.id,
+                    loc.name,
+                    loc.first_start.strftime("%H:%M") if loc.first_start else None,
+                ),
             )
         for course in competition.courses.values():
             conn.execute(
@@ -251,8 +256,22 @@ class SpcStore:
             )
         }
         if "start_locations" in tables:
-            for r in conn.execute("SELECT id, name FROM start_locations"):
-                competition.add_start_location(StartLocation(id=r[0], name=r[1]))
+            loc_cols = [
+                info[1] for info in conn.execute("PRAGMA table_info(start_locations)")
+            ]
+            has_first_start = "first_start" in loc_cols
+            if has_first_start:
+                loc_sql = "SELECT id, name, first_start FROM start_locations"
+            else:
+                loc_sql = "SELECT id, name FROM start_locations"
+            for r in conn.execute(loc_sql):
+                first_start = None
+                if has_first_start and r[2]:
+                    hh, mm = str(r[2]).split(":")
+                    first_start = time(int(hh), int(mm))
+                competition.add_start_location(
+                    StartLocation(id=r[0], name=r[1], first_start=first_start)
+                )
         competition.ensure_default_start_location()
 
         course_cols = [

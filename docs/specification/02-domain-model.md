@@ -57,16 +57,17 @@ Lähtö kuvaa fyysistä tai loogista lähtöpaikkaa.
 
 Esimerkkejä: “Lähtö A”, “Lähtö 1”, “Koulun piha”.
 
-| Kenttä | Selitys                |
-| ------ | ---------------------- |
-| id     | yksilöllinen tunniste  |
-| nimi   | näyttönimi             |
+| Kenttä | Selitys |
+| ------ | ------- |
+| id | yksilöllinen tunniste |
+| nimi | näyttönimi |
+| first_start | valinnainen ensimmäinen lähtöaika; tyhjä = kilpailun `competition_start` |
 
 Kilpailussa on vähintään yksi lähtö. Jos lähtöjä ei ole määritelty, käytetään yhtä oletuslähtöä.
 
 **Sarja kuuluu täsmälleen yhteen lähtöön.**
 
-Eri lähtöjen lähtökaaviot suunnitellaan **itsenäisesti**. Niiden kellonajat eivät riipu toisistaan.
+Eri lähtöjen lähtökaaviot suunnitellaan **itsenäisesti**. Niiden kellonajat eivät riipu toisistaan; jokaisella lähdöllä voi olla oma `first_start`.
 
 ---
 
@@ -95,6 +96,7 @@ Sarjalla on vähintään seuraavat tiedot:
 | arvioitu vauhti    | suhteellinen nopeus             |
 | arvioitu rata-aika | minuuttia                       |
 | lähtöväli          | oletus 2 min                    |
+| järjestys          | `sort_order` (näyttö/kaavio)    |
 | lukittu            | voiko ohjelma siirtää sarjaa    |
 
 ---

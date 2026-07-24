@@ -1,9 +1,24 @@
 # Changelog
 
+## 0.6.0
+
+- PDF-vienti (kansilehti + lähtökaavio per lähtö, sarjajärjestyksessä)
+- Excel/CSV: rivit sarjajärjestyksessä; Excelissä Ruudukko-välilehti per lähtö
+- Usean CourseData-XML:n tuonti kerralla
+- Kilpailun nimi kilpailun asetuksissa
+- Selkeämmät tuontivalikot (IOF CourseData 3.0 / IRMA Pirilä)
+- Käyttäjäohje (`docs/user-guide.md`)
+- PyInstaller-skriptit macOS/Windows (`packaging/`)
+- `course_grid` siirretty services-kerrokseen (vienti ei riipu GUI:sta)
+
 ## 0.5.0
 
 - Sarja ↔ rata -editori Sarjat-välilehdellä (puuttuvat korostettu)
 - Sarjat: muokattava lähtö ja lähtöväli
+- Sarjat: muokattava järjestys (`sort_order`); lista sort_orderin mukaan
+- Sarjajärjestys-välilehti: drag&drop -järjestys (vain nimet)
+- Lähtökaavio: Järjestys-sarake; näyttö Sarjajärjestys (oletus) tai Aika
+- Lähdöt: yliajettava 1. lähtöaika (`StartLocation.first_start`)
 - Radat: yliajettava sarjaväli (`Course.class_gap_min`)
 - Lähdöt-välilehti (lista, nimeäminen, lisää lähtö)
 - Jälki-ilmoittautuneet + lähtökaavion päivitys (olemassa olevat ajat säilyvät)
@@ -16,6 +31,7 @@
 - Automaattinen tavoitekuorma ja 2 min -sarjojen parillinen/pariton vaiheistus
 - Ruudukko-näkymä: minuutti × rata, sarjan nimi solussa
 - Varoitus `plan.window_overflow`, jos aikataulu ylittää pullonkaulan
+
 ## 0.4.0
 
 - Laatupisteet (0–100) ja kevyt optimoija lähtökaaviolle

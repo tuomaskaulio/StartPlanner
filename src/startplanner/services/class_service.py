@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import time
+
 from startplanner.domain import Competition
 from startplanner.domain.errors import StartPlannerError
 
@@ -61,6 +63,34 @@ class ClassService:
         if not cleaned:
             raise StartPlannerError("Lähdön nimi ei voi olla tyhjä")
         loc.name = cleaned
+
+    def set_location_first_start(
+        self, competition: Competition, location_id: str, first_start: time | None
+    ) -> None:
+        loc = competition.start_locations.get(location_id)
+        if loc is None:
+            raise StartPlannerError(f"Tuntematon lähtö: {location_id}")
+        loc.first_start = first_start
+
+    def set_sort_order(
+        self, competition: Competition, class_id: str, sort_order: int
+    ) -> None:
+        rc = competition.classes.get(class_id)
+        if rc is None:
+            raise StartPlannerError(f"Tuntematon sarja: {class_id}")
+        if sort_order < 0:
+            raise StartPlannerError("Järjestyksen on oltava vähintään 0")
+        rc.sort_order = sort_order
+
+    def reorder_classes(
+        self, competition: Competition, class_ids: list[str]
+    ) -> None:
+        if len(class_ids) != len(set(class_ids)):
+            raise StartPlannerError("Sarjajärjestys sisältää duplikaatteja")
+        if set(class_ids) != set(competition.classes.keys()):
+            raise StartPlannerError("Järjestyksen on sisällettävä kaikki sarjat")
+        for index, class_id in enumerate(class_ids):
+            competition.classes[class_id].sort_order = index
 
     def classes_missing_course(self, competition: Competition) -> list[str]:
         return sorted(

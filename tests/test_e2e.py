@@ -57,12 +57,23 @@ def test_sample_small_import_schedule_validate_export(tmp_path: Path):
 
     xlsx = tmp_path / "out.xlsx"
     csv_path = tmp_path / "out.csv"
+    pdf_path = tmp_path / "out.pdf"
     ExportService().export_excel(competition, xlsx)
     ExportService().export_csv(competition, csv_path)
+    ExportService().export_pdf(competition, pdf_path)
     assert xlsx.exists() and xlsx.stat().st_size > 0
+    assert pdf_path.exists() and pdf_path.stat().st_size > 0
     text = csv_path.read_text(encoding="utf-8")
     assert "1. lähtöaika" in text
     assert "Sarja" in text
+    assert "Järjestys" in text
+
+    from openpyxl import load_workbook
+
+    wb = load_workbook(xlsx)
+    assert "Lähtökaavio" in wb.sheetnames
+    assert "Yhteenveto" in wb.sheetnames
+    assert any(name.startswith("Ruudukko") for name in wb.sheetnames)
 
 
 def test_sample_medium_merge_partial_schedule():

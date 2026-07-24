@@ -25,6 +25,8 @@ class Settings:
 class StartLocation:
     id: str
     name: str
+    # None = use competition Settings.competition_start
+    first_start: time | None = None
 
 
 @dataclass
@@ -91,8 +93,25 @@ class ClassStartPlan:
     start_location_id: str
     entries: list[ClassStart] = field(default_factory=list)
 
-    def sorted_entries(self) -> list[ClassStart]:
-        return sorted(self.entries, key=lambda e: (e.first_start_time, e.class_id))
+    def sorted_entries(
+        self,
+        *,
+        by: str = "time",
+        class_sort_order: dict[str, int] | None = None,
+        class_names: dict[str, str] | None = None,
+    ) -> list[ClassStart]:
+        """Sort plan rows. by='time' (default) or by='class' (sort_order)."""
+        orders = class_sort_order or {}
+        names = class_names or {}
+
+        def _key(e: ClassStart) -> tuple:
+            order = orders.get(e.class_id, 0)
+            name = names.get(e.class_id, e.class_id)
+            if by == "class":
+                return (order, e.first_start_time, name)
+            return (e.first_start_time, order, name)
+
+        return sorted(self.entries, key=_key)
 
     def __iter__(self) -> Iterator[ClassStart]:
         return iter(self.sorted_entries())
@@ -200,3 +219,10 @@ class Competition:
     def competition_start_datetime(self) -> datetime:
         d = self.event_date or date.today()
         return datetime.combine(d, self.settings.competition_start)
+
+    def start_datetime_for(self, start_location_id: str) -> datetime:
+        d = self.event_date or date.today()
+        loc = self.start_locations.get(start_location_id)
+        if loc is not None and loc.first_start is not None:
+            return datetime.combine(d, loc.first_start)
+        return self.competition_start_datetime()

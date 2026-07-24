@@ -11,7 +11,7 @@ from startplanner.domain import (
     Course,
     RaceClass,
 )
-from startplanner.gui.course_grid import build_course_grid
+from startplanner.services.course_grid import build_course_grid
 
 
 def _mini_plan() -> tuple[Competition, ClassStartPlan]:

@@ -30,7 +30,7 @@ class SchedulerService:
                 "Ei sijoitettavia sarjoja tässä lähdössä (rata ja kilpailijat puuttuvat)"
             )
 
-        start = competition.competition_start_datetime()
+        start = competition.start_datetime_for(location_id)
         course_durations = self._course_durations(competition, classes)
         bottleneck_id = self._bottleneck_course_id(competition, course_durations)
         estimated_window = self._schedule_window_end(start, course_durations)

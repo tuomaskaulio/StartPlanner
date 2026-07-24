@@ -6,6 +6,7 @@ from pathlib import Path
 
 from startplanner.domain import Competition
 from startplanner.exporters.excel import CsvExporter, ExcelExporter
+from startplanner.exporters.pdf import PdfExporter
 from startplanner.importers.condes_coursedata import CondesCourseDataImporter
 from startplanner.importers.irma_ilmoit import IrmaIlmoitImporter
 
@@ -43,3 +44,6 @@ class ExportService:
 
     def export_csv(self, competition: Competition, path: str | Path) -> None:
         CsvExporter().write(competition, path)
+
+    def export_pdf(self, competition: Competition, path: str | Path) -> None:
+        PdfExporter().write(competition, path)
