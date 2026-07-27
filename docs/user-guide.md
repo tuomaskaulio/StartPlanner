@@ -1,6 +1,6 @@
 # StartPlanner – käyttäjäohje
 
-Versio 0.6. Suunnistuskilpailun **lähtökaavion** (sarjojen ensimmäiset lähtöajat lähdöittäin) suunnittelu.
+Versio 0.7. Uusi kilpailu -velho, PDF-vienti ja käyttäjäohje.
 
 ## Käynnistys
 
@@ -9,19 +9,30 @@ pip install -e ".[dev]"
 startplanner
 ```
 
-Asennuspaketin (macOS/Windows) rakentaminen: ks. [README](../README.md#asennuspaketit).
+## Valmiit paketit (ilman kääntämistä)
+
+Voit ladata valmiit asennuspaketit (macOS + Windows) GitHub Releases -sivulta:
+
+https://github.com/tuomaskaulio/StartPlanner/releases
+
+Pakkaukset eivät vaadi Pythonia tai kääntämistä — pakkaa zip-arkisto ja aja suoraan.
+
+Paikallinen PyInstaller-build: ks. [README](../README.md#asennuspaketit).
 
 ## Tyypillinen työnkulku
 
-1. **Tuo ratatiedot** – IOF CourseData 3.0 XML (Condes). Voit valita useita XML-tiedostoja kerralla.
-2. **Tuo ilmoittautumiset** – IRMA Pirilä `= ILMOIT` CSV.
-3. **Sarjat** – kytke puuttuvat sarjat radoihin; säädä lähtö ja lähtöväli.
-4. **Sarjajärjestys** – raahaa sarjoja haluttuun järjestykseen (näkyy kaaviossa).
-5. **Lähdöt** – nimeä lähdöt; tarvittaessa aseta lähdön oma 1. lähtöaika.
-6. **Kilpailun asetukset** – kilpailun nimi, oletusväli, sarjaväli, kilpailun aloitusaika.
-7. **Muodosta lähtökaavio** (aktiivinen lähtö). Tarkista **Huomiot**, aikajana ja ruudukko.
-8. **Jälki-ilmoittautuneet** – tuo uusi IRMA-CSV ja päivitä kaavio (olemassa olevat ajat säilyvät).
-9. **Vie** Excel / CSV / PDF / Ruudukko PDF. **Tallenna** projekti `.spc`-tiedostoon.
+1. **Uusi kilpailu** – ohjattu velho kysyy peräkkäin:
+   - kilpailun tiedot (nimi, aloitusaika, lähtöväli, sarjaväli)
+   - ratatiedot (Condes XML)
+   - ilmoittautumiset (IRMA Pirilä CSV)
+   Jokainen vaihe on valinnainen – voit painaa **Peruuta** milloin tahansa.
+2. **Sarjat** – kytke puuttuvat sarjat radoihin; säädä lähtö ja lähtöväli.
+3. **Sarjajärjestys** – raahaa sarjoja haluttuun järjestykseen (näkyy kaaviossa).
+4. **Lähdöt** – nimeä lähdöt; tarvittaessa aseta lähdön oma 1. lähtöaika.
+5. **Kilpailun asetukset** – kilpailun nimi, oletusväli, sarjaväli, kilpailun aloitusaika.
+6. **Muodosta lähtökaavio** (aktiivinen lähtö). Tarkista **Huomiot**, aikajana ja ruudukko.
+7. **Jälki-ilmoittautuneet** – tuo uusi IRMA-CSV ja päivitä kaavio (olemassa olevat ajat säilyvät).
+8. **Vie** Excel / CSV / PDF / Ruudukko PDF. **Tallenna** projekti `.spc`-tiedostoon.
 
 ## Tuontiformaatit
 
