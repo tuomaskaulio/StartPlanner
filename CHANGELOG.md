@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.2
+
+- Kiinnitetty Gatekeeper-ongelma: poistetaan UPX-pakkaus ja quarantaine-attribuutit macOS-buildistä
+
 ## 0.7.1
 
 - GitHub Releases -paketointi: macOS-versio julkaistaan sekä Apple Silicon (ARM) että Intel (x86-64) -arkkitehtuureille

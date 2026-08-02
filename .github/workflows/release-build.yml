@@ -66,6 +66,9 @@ jobs:
       - name: Build executable
         run: pyinstaller --noconfirm --clean packaging/startplanner.spec
 
+      - name: Remove quarantine attributes
+        run: xattr -rd com.apple.quarantine dist/StartPlanner/
+
       - name: Archive build
         run: |
           cd dist
