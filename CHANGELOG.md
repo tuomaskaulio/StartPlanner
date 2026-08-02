@@ -6,6 +6,7 @@
 - Uuden kilpailun jälkeen ohjelman ehdottaa automaattisesti ratatietojen ja ilmoittautumisten tuomista
 - Lähtökaavion automaattinen ehdotus tuonnin jälkeen, kun kaikki tiedot ovat valmiita
 - Käyttäjäohjeeseen lisätty osio valmista paketista (GitHub Releases)
+- GitHub Releases -paketointi: macOS-versio julkaistaan sekä Apple Silicon (ARM) että Intel (x86-64) -arkkitehtuureille
 
 ## 0.6.0
 

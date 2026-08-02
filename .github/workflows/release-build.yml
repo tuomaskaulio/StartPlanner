@@ -39,7 +39,16 @@ jobs:
 
   build-macos:
     name: Build macOS
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-latest
+            suffix: ARM
+          - arch: x86-64
+            runner: macos-15-intel
+            suffix: Intel
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -60,13 +69,13 @@ jobs:
       - name: Archive build
         run: |
           cd dist
-          zip -r StartPlanner-macOS.zip StartPlanner/
+          zip -r StartPlanner-macOS-${{ matrix.suffix }}.zip StartPlanner/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: StartPlanner-macOS
-          path: dist/StartPlanner-macOS.zip
+          name: StartPlanner-macOS-${{ matrix.suffix }}
+          path: dist/StartPlanner-macOS-${{ matrix.suffix }}.zip
           if-no-files-found: error
 
   upload-release-assets:
@@ -85,10 +94,16 @@ jobs:
           name: StartPlanner-Windows
           path: release-assets
 
-      - name: Download macOS artifact
+      - name: Download macOS ARM artifact
         uses: actions/download-artifact@v4
         with:
-          name: StartPlanner-macOS
+          name: StartPlanner-macOS-ARM
+          path: release-assets
+
+      - name: Download macOS Intel artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: StartPlanner-macOS-Intel
           path: release-assets
 
       - name: Upload release assets

@@ -17,7 +17,15 @@ https://github.com/tuomaskaulio/StartPlanner/releases
 
 Pakkaukset eivät vaadi Pythonia tai kääntämistä — pakkaa zip-arkisto ja aja suoraan.
 
+macOS-paketit ovat saatavilla kahdessa arkkitehtuurissa:
+- **Apple Silicon (ARM)** — `StartPlanner-macOS-ARM.zip`
+- **Intel (x86-64)** — `StartPlanner-macOS-Intel.zip`
+
+Valitse oma prosessorisi mukaan tuleva paketti.
+
 Paikallinen PyInstaller-build: ks. [README](../README.md#asennuspaketit).
+>>>>>>>
+
 
 ## Tyypillinen työnkulku
 

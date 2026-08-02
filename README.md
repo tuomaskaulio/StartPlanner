@@ -53,7 +53,8 @@ pip install -e ".[packaging]"
 ./packaging/build_windows.ps1
 ```
 
-Tuloste: `dist/StartPlanner/`. macOS voi varoittaa allekirjoittamattomasta sovelluksesta (Gatekeeper) — salli järjestelmäasetuksista tarvittaessa.
+Tuloste: `dist/StartPlanner/`. macOS voi varoittaa allekirjoittamattomasta sovelluksesta (Gatekeeper) — salli järjestelmäasetuksista tarvittaessa. GitHub Releases -paketeissa macOS on saatavilla sekä Apple Silicon (ARM) että Intel (x86-64) -arkkitehtuureille.
+
 
 ## Testit
 
