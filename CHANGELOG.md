@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.3
+
+- Kiinnitetty macOS-käynnistysongelma Intel-koneilla: PyInstallerin pakkaamat `.so`/`.dylib`-tiedostot sisältävät vanhentuneita adhoc-allekirjoituksia, jotka macOS hylkää ("library load disallowed by system policy"). Build allekirjoittaa nyt kaikki bundlatut binäärit uudelleen adhoc-allekirjoituksella.
+
 ## 0.7.2
 
 - Kiinnitetty Gatekeeper-ongelma: poistetaan UPX-pakkaus ja quarantaine-attribuutit macOS-buildistä

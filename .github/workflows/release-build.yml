@@ -66,6 +66,11 @@ jobs:
       - name: Build executable
         run: pyinstaller --noconfirm --clean packaging/startplanner.spec
 
+      - name: Re-sign bundled binaries
+        run: |
+          find dist/StartPlanner \( -name "*.so" -o -name "*.dylib" \) -exec codesign --remove-signature {} \; 2>/dev/null || true
+          codesign --force --deep --sign - dist/StartPlanner/StartPlanner 2>/dev/null || true
+
       - name: Remove quarantine attributes
         run: xattr -rd com.apple.quarantine dist/StartPlanner/
 
