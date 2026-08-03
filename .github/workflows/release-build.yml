@@ -71,6 +71,11 @@ jobs:
           find dist/StartPlanner \( -name "*.so" -o -name "*.dylib" \) -exec codesign --remove-signature {} \; 2>/dev/null || true
           codesign --force --deep --sign - dist/StartPlanner/StartPlanner 2>/dev/null || true
 
+      - name: Copy launcher script
+        run: |
+          cp packaging/launch_macos.sh dist/StartPlanner/launch_macos.sh
+          chmod +x dist/StartPlanner/launch_macos.sh
+
       - name: Remove quarantine attributes
         run: xattr -rd com.apple.quarantine dist/StartPlanner/
 
