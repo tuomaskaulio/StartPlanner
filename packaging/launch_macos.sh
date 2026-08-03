@@ -3,8 +3,7 @@
 # Removes the quarantine attribute (applied by macOS when downloading from
 # the internet) so Gatekeeper doesn't block the unsigned bundled binaries.
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-APP_DIR="$(dirname "$SCRIPT_DIR")"
+APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Remove quarantine attributes so Gatekeeper doesn't block the app
 xattr -rd com.apple.quarantine "$APP_DIR" 2>/dev/null || true
