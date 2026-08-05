@@ -60,6 +60,8 @@ class RaceClass:
     # Order of classes sharing the same course (scheduler sequence)
     course_order: int = 0
     locked: bool = False
+    # Number of empty start slots to leave before this class on its course
+    empty_slots_before: int = 0
 
 
 @dataclass

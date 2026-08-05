@@ -1079,7 +1079,15 @@ class MainWindow(QMainWindow):
         self._refresh_plan_and_status()
 
     def _refresh_classes_table(self) -> None:
-        headers = ["Järjestys", "Sarja", "Lähtö", "Rata", "Kilpailijoita", "Lähtöväli"]
+        headers = [
+            "Järjestys",
+            "Sarja",
+            "Lähtö",
+            "Rata",
+            "Kilpailijoita",
+            "Lähtöväli",
+            "Tyhjiä ennen",
+        ]
         classes = sorted(
             self._competition.classes.values(),
             key=lambda c: (c.sort_order, c.name),
@@ -1163,6 +1171,19 @@ class MainWindow(QMainWindow):
             )
             self._classes_table.setCellWidget(row, 5, interval)
 
+            empty_slots = QSpinBox()
+            empty_slots.setRange(0, 30)
+            empty_slots.setValue(rc.empty_slots_before)
+            empty_slots.setToolTip(
+                "Tyhjien lähtöaikojen määrä ennen tätä sarjaa samalla radalla"
+            )
+            empty_slots.valueChanged.connect(
+                lambda value, class_id=rc.id: self._on_class_empty_slots_changed(
+                    class_id, value
+                )
+            )
+            self._classes_table.setCellWidget(row, 6, empty_slots)
+
         self._classes_table.resizeColumnsToContents()
 
     def _on_class_sort_order_changed(self, class_id: str, value: int) -> None:
@@ -1196,6 +1217,17 @@ class MainWindow(QMainWindow):
             self._class_service.set_start_interval(self._competition, class_id, value)
         except StartPlannerError as exc:
             QMessageBox.warning(self, "Lähtöväli", str(exc))
+            self._refresh_classes_table()
+            return
+        self._refresh_plan_and_status()
+
+    def _on_class_empty_slots_changed(self, class_id: str, value: int) -> None:
+        try:
+            self._class_service.set_empty_slots_before(
+                self._competition, class_id, value
+            )
+        except StartPlannerError as exc:
+            QMessageBox.warning(self, "Tyhjät lähtöajat", str(exc))
             self._refresh_classes_table()
             return
         self._refresh_plan_and_status()

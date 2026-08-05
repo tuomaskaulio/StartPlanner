@@ -75,12 +75,26 @@ Paikallinen PyInstaller-build: ks. [README](../README.md#asennuspaketit).
 ## Näkymät
 
 - **Lähdöt** – nimet, 1. lähtöaika (tai kilpailun oletus), sarjojen määrä
-- **Sarjat** – rata, lähtö, lähtöväli, järjestysnumero
+- **Sarjat** – rata, lähtö, lähtöväli, tyhjät lähtöajat, järjestysnumero
 - **Sarjajärjestys** – drag & drop näyttöjärjestys (Lähtökaavio / Excel)
 - **Ratajärjestys** – drag & drop: missä järjestyksessä saman radan sarjat lähtevät
 - **Lähtökaavio** – näyttö *Sarjajärjestys* tai *Aika*
 - **Ruudukko** – minuutti × rata
 - **Huomiot** – validointiviestit (Virhe / Varoitus / Huomautus)
+
+## Tyhjät lähtöajat sarjan edellä
+
+**Sarjat**-välilehdellä voi määrittää jokaiselle sarjalle **Tyhjiä ennen** -arvon
+(0–30). Se kertoo, montako tyhjää lähtöaikaa jätetään sarjan eteen samalla radalla.
+
+- **Oletus on 0**, jolloin sarjat seuraavat toisiaan normaalisti sarjavälin
+  (oletus 2 min) jälkeen.
+- **Arvo 1** tarkoittaa yhtä tyhjää lähtöaikaa. Jos sarjan lähtöväli on 2 minuuttia,
+  edellisen sarjan viimeisen lähdön ja tämän sarjan ensimmäisen lähdön väliin jää
+  `sarjaväli (2) + 1 × lähtöväli (2) = 4 minuuttia` (esim. 11:24 → 11:28).
+- **Arvo 2** tarkoittaa kahta tyhjää lähtöaikaa → `2 + 2 × 2 = 6 minuuttia` (11:24 → 11:30).
+- Jos sarja on radan **ensimmäinen**, tyhjät ajat siirtävät sen alkua:
+  `tyhjät × lähtöväli` minuuttia lähdön aloituksen jälkeen.
 
 ## Vienti
 

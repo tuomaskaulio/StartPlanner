@@ -107,6 +107,122 @@ def test_spc_roundtrip_preserves_interval_and_course_gap(tmp_path: Path):
     assert loaded.class_gap_for_course(course.id) == 5
 
 
+def test_scheduler_respects_empty_slots_before():
+    from datetime import timedelta
+
+    from startplanner.domain import (
+        DEFAULT_START_LOCATION_ID,
+        Competition,
+        Competitor,
+        Course,
+        RaceClass,
+    )
+    from startplanner.services.scheduler_service import SchedulerService
+
+    c = Competition(name="EmptySlots")
+    c.ensure_default_start_location()
+    c.settings.class_gap_min = 2
+    c.add_course(
+        Course(
+            id="cA",
+            name="A",
+            length_m=3000,
+            controls=["31"],
+        )
+    )
+    c.add_class(
+        RaceClass(
+            id="h60",
+            name="H60",
+            course_id="cA",
+            start_location_id=DEFAULT_START_LOCATION_ID,
+            start_interval_min=1,
+        )
+    )
+    c.add_class(
+        RaceClass(
+            id="h65",
+            name="H65",
+            course_id="cA",
+            start_location_id=DEFAULT_START_LOCATION_ID,
+            start_interval_min=1,
+            empty_slots_before=1,
+        )
+    )
+    c.add_competitor(Competitor(id="1", first_name="A", last_name="One", class_id="h60"))
+    c.add_competitor(Competitor(id="2", first_name="B", last_name="Two", class_id="h65"))
+    plan = SchedulerService().apply(c)
+    ordered = sorted(plan.entries, key=lambda e: e.first_start_time)
+    first_end = c.class_span_end(
+        c.classes[ordered[0].class_id], ordered[0].first_start_time
+    )
+    # H65 is second on course; 1 empty slot * 1-min interval => +1 min after gap
+    assert ordered[1].first_start_time >= first_end + timedelta(minutes=2 + 1)
+
+
+def test_scheduler_first_class_empty_slots_shifts_start():
+    from datetime import timedelta
+
+    from startplanner.domain import (
+        DEFAULT_START_LOCATION_ID,
+        Competition,
+        Competitor,
+        Course,
+        RaceClass,
+    )
+    from startplanner.services.scheduler_service import SchedulerService
+
+    c = Competition(name="FirstEmpty")
+    c.ensure_default_start_location()
+    c.settings.class_gap_min = 2
+    c.add_course(
+        Course(
+            id="cA",
+            name="A",
+            length_m=3000,
+            controls=["31"],
+        )
+    )
+    c.add_class(
+        RaceClass(
+            id="h21",
+            name="H21",
+            course_id="cA",
+            start_location_id=DEFAULT_START_LOCATION_ID,
+            start_interval_min=2,
+            empty_slots_before=1,
+        )
+    )
+    c.add_competitor(Competitor(id="1", first_name="A", last_name="One", class_id="h21"))
+    start = c.competition_start_datetime()
+    plan = SchedulerService().apply(c)
+    entry = plan.entry_for_class("h21")
+    assert entry is not None
+    # First class: 1 empty slot * 2-min interval => 2 min after start
+    assert entry.first_start_time == start + timedelta(minutes=2)
+
+
+def test_empty_slots_before_spc_roundtrip(tmp_path: Path):
+    from startplanner.services.competition_service import CompetitionService
+
+    c = _medium_competition()
+    rc = next(iter(c.classes.values()))
+    ClassService().set_empty_slots_before(c, rc.id, 3)
+
+    path = tmp_path / "empty.spc"
+    svc = CompetitionService()
+    svc.save(c, path)
+    loaded = svc.load(path)
+    assert loaded.classes[rc.id].empty_slots_before == 3
+
+
+def test_empty_slots_before_default_is_zero():
+    from startplanner.domain import RaceClass
+
+    rc = RaceClass(id="x", name="X")
+    assert rc.empty_slots_before == 0
+
+
 def test_scheduler_respects_course_class_gap():
     from datetime import timedelta
 

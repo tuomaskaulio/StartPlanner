@@ -131,12 +131,15 @@ class QualityService:
         total = 0
         for prev, cur in zip(entries, entries[1:]):
             rc_prev = competition.classes.get(prev.class_id)
+            rc_cur = competition.classes.get(cur.class_id)
             if not rc_prev:
                 continue
             end = competition.class_span_end(rc_prev, prev.first_start_time)
             gap = int((cur.first_start_time - end).total_seconds() // 60)
             total += 1
             needed = competition.class_gap_for_course(rc_prev.course_id)
+            if rc_cur:
+                needed += rc_cur.empty_slots_before * rc_cur.start_interval_min
             if gap >= needed:
                 good += 1
         if total == 0:
