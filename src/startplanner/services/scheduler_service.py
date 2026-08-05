@@ -269,13 +269,19 @@ class SchedulerService:
         assert course is not None and course.first_control
         first_control = course.first_control
         gap = timedelta(minutes=competition.class_gap_for_course(rc.course_id))
+        empty_offset = timedelta(
+            minutes=rc.empty_slots_before * rc.start_interval_min
+        )
 
         if rc.id in locked_times:
             placement = locked_times[rc.id]
         else:
-            earliest = start
+            earliest = start + empty_offset
             if rc.course_id in course_end:
-                earliest = max(earliest, course_end[rc.course_id] + gap)
+                earliest = max(
+                    earliest,
+                    course_end[rc.course_id] + gap + empty_offset,
+                )
             if mode == "balanced":
                 # Leave room for the whole course stream inside the window.
                 course_dur = course_durations.get(rc.course_id or "", 1)
@@ -429,6 +435,9 @@ class SchedulerService:
                 total += SchedulerService._class_stream_minutes(rc, n)
             gap = competition.class_gap_for_course(course_id)
             total += gap * max(len(rcs) - 1, 0)
+            total += sum(
+                rc.empty_slots_before * rc.start_interval_min for rc in rcs
+            )
             durations[course_id] = total
         return durations
 

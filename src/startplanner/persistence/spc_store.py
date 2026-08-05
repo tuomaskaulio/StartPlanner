@@ -59,7 +59,8 @@ CREATE TABLE IF NOT EXISTS classes (
     estimated_speed REAL NOT NULL,
     sort_order INTEGER NOT NULL,
     course_order INTEGER NOT NULL,
-    locked INTEGER NOT NULL
+    locked INTEGER NOT NULL,
+    empty_slots_before INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS competitors (
     id TEXT PRIMARY KEY,
@@ -184,8 +185,8 @@ class SpcStore:
         for rc in competition.classes.values():
             conn.execute(
                 "INSERT INTO classes(id, name, course_id, start_location_id, "
-                "start_interval_min, estimated_speed, sort_order, course_order, locked) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "start_interval_min, estimated_speed, sort_order, course_order, locked, "
+                "empty_slots_before) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     rc.id,
                     rc.name,
@@ -196,6 +197,7 @@ class SpcStore:
                     rc.sort_order,
                     rc.course_order,
                     int(rc.locked),
+                    rc.empty_slots_before,
                 ),
             )
         for comp in competition.competitors.values():
@@ -310,7 +312,14 @@ class SpcStore:
         ]
         has_loc = "start_location_id" in class_cols
         has_course_order = "course_order" in class_cols
-        if has_loc and has_course_order:
+        has_empty_slots = "empty_slots_before" in class_cols
+        if has_loc and has_course_order and has_empty_slots:
+            class_sql = (
+                "SELECT id, name, course_id, start_location_id, start_interval_min, "
+                "estimated_speed, sort_order, course_order, locked, empty_slots_before "
+                "FROM classes"
+            )
+        elif has_loc and has_course_order:
             class_sql = (
                 "SELECT id, name, course_id, start_location_id, start_interval_min, "
                 "estimated_speed, sort_order, course_order, locked FROM classes"
@@ -326,7 +335,22 @@ class SpcStore:
                 "sort_order, locked FROM classes"
             )
         for r in conn.execute(class_sql):
-            if has_loc and has_course_order:
+            if has_loc and has_course_order and has_empty_slots:
+                competition.add_class(
+                    RaceClass(
+                        id=r[0],
+                        name=r[1],
+                        course_id=r[2],
+                        start_location_id=r[3] or DEFAULT_START_LOCATION_ID,
+                        start_interval_min=r[4],
+                        estimated_speed=r[5],
+                        sort_order=r[6],
+                        course_order=r[7],
+                        locked=bool(r[8]),
+                        empty_slots_before=r[9],
+                    )
+                )
+            elif has_loc and has_course_order:
                 competition.add_class(
                     RaceClass(
                         id=r[0],

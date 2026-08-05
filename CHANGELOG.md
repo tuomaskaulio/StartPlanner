@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.0
+
+- Sarjalle voi määrittää tyhjien lähtöaikojen määrän ennen sarjaa (`empty_slots_before`). Oletus 0. Sarjan ja edellisen radan sarjan väliin jätetään `sarjaväli + tyhjät × lähtöväli` minuuttia. Jos sarja on radan ensimmäinen, se alkaa `tyhjät × lähtöväli` minuuttia lähdön aloituksen jälkeen.
+
 ## 0.7.3
 
 - Kiinnitetty macOS-käynnistysongelma Intel-koneilla: PyInstallerin pakkaamat `.so`/`.dylib`-tiedostot sisältävät vanhentuneita adhoc-allekirjoituksia, jotka macOS hylkää ("library load disallowed by system policy"). Build allekirjoittaa nyt kaikki bundlatut binäärit uudelleen adhoc-allekirjoituksella.

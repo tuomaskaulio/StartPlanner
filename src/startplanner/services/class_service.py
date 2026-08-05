@@ -82,6 +82,18 @@ class ClassService:
             raise StartPlannerError("Sarjaväli ei voi olla negatiivinen")
         course.class_gap_min = gap_min
 
+    def set_empty_slots_before(
+        self, competition: Competition, class_id: str, count: int
+    ) -> None:
+        rc = competition.classes.get(class_id)
+        if rc is None:
+            raise StartPlannerError(f"Tuntematon sarja: {class_id}")
+        if count < 0:
+            raise StartPlannerError(
+                "Tyhjien lähtöaikojen määrä ei voi olla negatiivinen"
+            )
+        rc.empty_slots_before = count
+
     def rename_start_location(
         self, competition: Competition, location_id: str, name: str
     ) -> None:

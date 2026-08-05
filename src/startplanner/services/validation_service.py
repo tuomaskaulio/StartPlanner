@@ -123,6 +123,16 @@ class ValidationService:
                         rc.id,
                     )
                 )
+            if rc.empty_slots_before < 0:
+                issues.append(
+                    Issue(
+                        "class.empty_slots",
+                        Severity.ERROR,
+                        f"Sarjan {rc.name} tyhjien lähtöaikojen määrä on virheellinen",
+                        "class",
+                        rc.id,
+                    )
+                )
         for comp in competition.competitors.values():
             if not comp.class_id or comp.class_id not in competition.classes:
                 issues.append(
