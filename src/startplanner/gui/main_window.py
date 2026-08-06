@@ -46,6 +46,7 @@ from startplanner.domain import (
     Competition,
     Settings,
     StartLocation,
+    format_start_time,
 )
 from startplanner.domain.errors import ScheduleError, StartPlannerError
 from startplanner.services.class_service import ClassService
@@ -1336,7 +1337,9 @@ class MainWindow(QMainWindow):
                 rows.append(
                     [
                         str(rc.sort_order if rc else ""),
-                        entry.first_start_time.strftime("%H:%M"),
+                        format_start_time(
+                            entry.first_start_time, self._competition.event_date
+                        ),
                         rc.name if rc else "",
                         str(self._competition.competitor_count(entry.class_id)),
                         str(rc.start_interval_min if rc else ""),
@@ -1393,8 +1396,9 @@ class MainWindow(QMainWindow):
                     + timedelta(minutes=i * rc.start_interval_min)
                 ).replace(second=0, microsecond=0)
                 minute_classes.setdefault(minute, []).append(rc.name)
+        event_date = self._competition.event_date
         rows = [
-            [m.strftime("%H:%M"), ", ".join(names)]
+            [format_start_time(m, event_date), ", ".join(names)]
             for m, names in sorted(minute_classes.items())
         ]
         self._fill_table(self._timeline_table, ["Aika", "Sarjat lähdössä"], rows)
@@ -1419,8 +1423,9 @@ class MainWindow(QMainWindow):
         table.setRowCount(len(grid.minutes))
 
         readonly = Qt.ItemIsSelectable | Qt.ItemIsEnabled
+        event_date = self._competition.event_date
         for row, minute in enumerate(grid.minutes):
-            time_item = QTableWidgetItem(minute.strftime("%H:%M"))
+            time_item = QTableWidgetItem(format_start_time(minute, event_date))
             time_item.setFlags(readonly)
             table.setItem(row, 0, time_item)
 

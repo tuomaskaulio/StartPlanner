@@ -85,6 +85,25 @@ def test_course_interleave_in_plan():
     assert any(i.rule_id == "plan.course_interleave" for i in report.errors)
 
 
+def test_next_day_start_is_warning():
+    from datetime import date
+
+    c = _base()
+    c.event_date = date(2025, 1, 1)
+    c.set_plan(
+        ClassStartPlan(
+            start_location_id=DEFAULT_START_LOCATION_ID,
+            entries=[
+                ClassStart("s1", "h21", datetime(2025, 1, 1, 12, 0)),
+                ClassStart("s2", "d21", datetime(2025, 1, 2, 0, 15)),
+            ],
+        )
+    )
+    report = ValidationService().validate(c, require_plan=True)
+    assert any(i.rule_id == "plan.next_day" for i in report.warnings)
+    assert not any(i.rule_id == "plan.next_day" for i in report.errors)
+
+
 def test_separate_locations_allow_same_first_control_minute():
     c = _base()
     c.add_start_location(StartLocation(id="start:2", name="Lähtö 2"))

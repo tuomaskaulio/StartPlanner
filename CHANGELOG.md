@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.2
+
+- Lähtöaika, joka siirtyy kilpailupäivästä seuraavalle vuorokaudelle, näytetään merkinnällä "(+1 pv)" lähtökaaviossa, aikajanalla, ruudukossa sekä Excel/CSV/PDF-vienneissä (ennen näytettiin vain "HH:MM" ja vuorokausi hävisi näkyvistä)
+- Validointi varoittaa, kun sarjan lähtöaika osuu eri vuorokaudelle kuin kilpailupäivä (`plan.next_day`)
+
 ## 0.8.1
 
 - Kilpailusta voi poistaa kaikki kilpailijat (painike "Poista kaikki kilpailijat" Kilpailijat-välilehdellä)

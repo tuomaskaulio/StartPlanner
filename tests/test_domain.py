@@ -10,6 +10,7 @@ from startplanner.domain import (
     Competitor,
     Course,
     RaceClass,
+    format_start_time,
 )
 
 
@@ -108,6 +109,25 @@ def test_clear_competitors():
     assert removed == 2
     assert len(c.competitors) == 0
     assert c.competitor_count("1") == 0
+
+
+def test_format_start_time_same_day():
+    from datetime import date
+
+    value = datetime(2026, 8, 6, 13, 45)
+    assert format_start_time(value, date(2026, 8, 6)) == "13:45"
+
+
+def test_format_start_time_next_day():
+    from datetime import date
+
+    value = datetime(2026, 8, 7, 0, 15)
+    assert format_start_time(value, date(2026, 8, 6)) == "00:15 (+1 pv)"
+
+
+def test_format_start_time_no_event_date():
+    value = datetime(2026, 8, 7, 0, 15)
+    assert format_start_time(value, None) == "00:15"
 
 
 def test_clear_competitors_empty():

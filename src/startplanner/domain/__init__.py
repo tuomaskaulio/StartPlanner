@@ -14,6 +14,17 @@ def _new_id() -> str:
     return str(uuid4())
 
 
+def format_start_time(value: datetime, event_date: date | None) -> str:
+    """Format a start time as HH:MM, marking a day offset from event_date."""
+    clock = value.strftime("%H:%M")
+    if event_date is None:
+        return clock
+    offset = (value.date() - event_date).days
+    if offset == 0:
+        return clock
+    return f"{clock} ({offset:+d} pv)"
+
+
 @dataclass
 class Settings:
     default_start_interval_min: int = 2
