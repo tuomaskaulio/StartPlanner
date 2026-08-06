@@ -1,6 +1,6 @@
 [project]
 name = "startplanner"
-version = "0.8.2"
+version = "0.8.3"
 description = "Orienteering start schedule planner"
 requires-python = ">=3.12"
 dependencies = [

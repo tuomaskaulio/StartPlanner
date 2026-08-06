@@ -111,6 +111,30 @@ def test_clear_competitors():
     assert c.competitor_count("1") == 0
 
 
+def test_clear_competitors_unlocks_plan_and_classes():
+    c = Competition()
+    c.add_class(RaceClass(id="1", name="H21", course_id="c", locked=True))
+    c.add_competitor(Competitor(id="a", first_name="A", last_name="B", class_id="1"))
+    c.set_plan(
+        ClassStartPlan(
+            start_location_id=DEFAULT_START_LOCATION_ID,
+            entries=[
+                ClassStart(
+                    id="s1",
+                    class_id="1",
+                    first_start_time=datetime(2026, 1, 1, 12, 0),
+                    locked=True,
+                )
+            ],
+        )
+    )
+    c.clear_competitors()
+    assert all(
+        not e.locked for plan in c.plans.values() for e in plan.entries
+    )
+    assert c.classes["1"].locked is False
+
+
 def test_format_start_time_same_day():
     from datetime import date
 

@@ -1,11 +1,13 @@
 """Even flow distribution tests."""
 
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from startplanner.domain import (
     DEFAULT_START_LOCATION_ID,
+    ClassStart,
+    ClassStartPlan,
     Competition,
     Competitor,
     Course,
@@ -262,3 +264,67 @@ def test_overflow_window_rebalances_deterministically():
         empty += int(t not in load)
         t += timedelta(minutes=1)
     assert empty <= 2
+
+
+def test_clearing_competitors_drops_stale_lock_and_avoids_next_day():
+    """A class locked at a late, now-stale anchor time (e.g. it used to be a
+    small filler class squeezed in late in the day) must not balloon into
+    the next day once its roster is wiped and re-imported with far more
+    entries. Clearing competitors must drop the stale lock so the class is
+    freshly (and sensibly) placed again."""
+    c = Competition(name="StaleLock", event_date=date(2026, 8, 6))
+    c.ensure_default_start_location()
+    c.add_course(Course(id="crs", name="Rata", controls=["31", "32"]))
+
+    class_a = RaceClass(
+        id="class:a",
+        name="A",
+        course_id="crs",
+        start_location_id=DEFAULT_START_LOCATION_ID,
+        start_interval_min=2,
+        course_order=0,
+    )
+    class_b = RaceClass(
+        id="class:b",
+        name="B",
+        course_id="crs",
+        start_location_id=DEFAULT_START_LOCATION_ID,
+        start_interval_min=2,
+        course_order=1,
+    )
+    c.add_class(class_a)
+    c.add_class(class_b)
+    c.add_competitor(Competitor(id="a:0", first_name="T", last_name="a0", class_id="class:a"))
+    c.add_competitor(Competitor(id="b:0", first_name="T", last_name="b0", class_id="class:b"))
+
+    # Manually seed a plan where class A is locked at a late, stale anchor —
+    # as if it was locked long ago while it was still a tiny filler class.
+    stale_anchor = datetime(2026, 8, 6, 20, 0)
+    c.set_plan(
+        ClassStartPlan(
+            start_location_id=DEFAULT_START_LOCATION_ID,
+            entries=[
+                ClassStart(
+                    id="s1", class_id="class:a", first_start_time=stale_anchor, locked=True
+                )
+            ],
+        )
+    )
+
+    removed = c.clear_competitors()
+    assert removed == 2
+    stale_entry = c.plan_for(DEFAULT_START_LOCATION_ID).entry_for_class("class:a")
+    assert stale_entry.locked is False
+
+    # Re-import: class A turns out to have a much larger real roster.
+    for i in range(300):
+        c.add_competitor(
+            Competitor(id=f"a2:{i}", first_name="T", last_name=f"a2-{i}", class_id="class:a")
+        )
+    c.add_competitor(Competitor(id="b2:0", first_name="T", last_name="b2-0", class_id="class:b"))
+
+    new_plan = SchedulerService().apply(c)
+    assert all(e.first_start_time.date() == c.event_date for e in new_plan.entries)
+    entry_a = new_plan.entry_for_class("class:a")
+    assert entry_a.locked is False
+    assert entry_a.first_start_time == c.competition_start_datetime()

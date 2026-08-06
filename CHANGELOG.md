@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.3
+
+- Korjattu virhe, jossa lukittu sarja säilytti vanhan lähtöaika-ankkurinsa mutta varasi paikat uuden, elävän kilpailijamäärän mukaan — tämä saattoi työntää radan seuraavat sarjat seuraavalle vuorokaudelle "Poista kaikki kilpailijat" + uuden ilmoittautumislistan tuonnin jälkeen
+- `Competition.clear_competitors()` nollaa nyt myös lähtökaavion ja sarjojen lukitukset, koska vanha lukittu kellonaika ei ole enää luotettava koko roolituksen pyyhkimisen jälkeen
+
 ## 0.8.2
 
 - Lähtöaika, joka siirtyy kilpailupäivästä seuraavalle vuorokaudelle, näytetään merkinnällä "(+1 pv)" lähtökaaviossa, aikajanalla, ruudukossa sekä Excel/CSV/PDF-vienneissä (ennen näytettiin vain "HH:MM" ja vuorokausi hävisi näkyvistä)
