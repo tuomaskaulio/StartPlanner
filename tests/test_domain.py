@@ -99,6 +99,44 @@ def test_competitor_count():
     assert c.competitor_count("1") == 1
 
 
+def test_clear_competitors():
+    c = Competition()
+    c.add_class(RaceClass(id="1", name="H21", course_id="c"))
+    c.add_competitor(Competitor(id="a", first_name="A", last_name="B", class_id="1"))
+    c.add_competitor(Competitor(id="b", first_name="C", last_name="D", class_id="1"))
+    removed = c.clear_competitors()
+    assert removed == 2
+    assert len(c.competitors) == 0
+    assert c.competitor_count("1") == 0
+
+
+def test_clear_competitors_empty():
+    c = Competition()
+    assert c.clear_competitors() == 0
+    assert len(c.competitors) == 0
+
+
+def test_remove_competitor():
+    c = Competition()
+    c.add_class(RaceClass(id="1", name="H21", course_id="c"))
+    c.add_competitor(Competitor(id="a", first_name="A", last_name="B", class_id="1"))
+    assert c.remove_competitor("a") is True
+    assert len(c.competitors) == 0
+    assert c.remove_competitor("a") is False
+
+
+def test_competition_service_clear_competitors():
+    from startplanner.services.competition_service import CompetitionService
+
+    c = Competition()
+    c.add_class(RaceClass(id="1", name="H21", course_id="c"))
+    c.add_competitor(Competitor(id="a", first_name="A", last_name="B", class_id="1"))
+    c.add_competitor(Competitor(id="b", first_name="C", last_name="D", class_id="1"))
+    removed = CompetitionService().clear_competitors(c)
+    assert removed == 2
+    assert len(c.competitors) == 0
+
+
 def test_new_competition_with_settings():
     """CompetitionService.new_competition accepts name, event_date, and settings."""
     from datetime import date

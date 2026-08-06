@@ -167,6 +167,19 @@ class Competition:
     def add_competitor(self, competitor: Competitor) -> None:
         self.competitors[competitor.id] = competitor
 
+    def remove_competitor(self, competitor_id: str) -> bool:
+        """Remove a single competitor by id. Returns True if removed."""
+        return self.competitors.pop(competitor_id, None) is not None
+
+    def clear_competitors(self) -> int:
+        """Remove all competitors from the competition.
+
+        Returns the number of competitors removed.
+        """
+        count = len(self.competitors)
+        self.competitors.clear()
+        return count
+
     def set_plan(self, plan: ClassStartPlan) -> None:
         self.plans[plan.start_location_id] = plan
 

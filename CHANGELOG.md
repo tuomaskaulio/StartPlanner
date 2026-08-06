@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.1
+
+- Kilpailusta voi poistaa kaikki kilpailijat (painike "Poista kaikki kilpailijat" Kilpailijat-välilehdellä)
+
 ## 0.8.0
 
 - Sarjalle voi määrittää tyhjien lähtöaikojen määrän ennen sarjaa (`empty_slots_before`). Oletus 0. Sarjan ja edellisen radan sarjan väliin jätetään `sarjaväli + tyhjät × lähtöväli` minuuttia. Jos sarja on radan ensimmäinen, se alkaa `tyhjät × lähtöväli` minuuttia lähdön aloituksen jälkeen.

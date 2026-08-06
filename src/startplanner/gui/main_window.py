@@ -328,7 +328,13 @@ class MainWindow(QMainWindow):
         course_order_layout.addWidget(self._course_order_list)
 
         self._courses_table = QTableWidget()
+        self._competitors_page = QWidget()
+        competitors_layout = QVBoxLayout(self._competitors_page)
         self._competitors_table = QTableWidget()
+        competitors_layout.addWidget(self._competitors_table)
+        clear_competitors_btn = QPushButton("Poista kaikki kilpailijat")
+        clear_competitors_btn.clicked.connect(self._clear_competitors)
+        competitors_layout.addWidget(clear_competitors_btn)
         self._plan_page = QWidget()
         plan_layout = QVBoxLayout(self._plan_page)
         plan_sort_row = QHBoxLayout()
@@ -353,7 +359,7 @@ class MainWindow(QMainWindow):
         self._tabs.addTab(self._class_order_page, "Sarjajärjestys")
         self._tabs.addTab(self._course_order_page, "Ratajärjestys")
         self._tabs.addTab(self._courses_table, "Radat")
-        self._tabs.addTab(self._competitors_table, "Kilpailijat")
+        self._tabs.addTab(self._competitors_page, "Kilpailijat")
         self._tabs.addTab(self._plan_page, "Lähtökaavio")
         self._tabs.addTab(self._timeline_table, "Aikajana")
         self._tabs.addTab(self._grid_table, "Ruudukko")
@@ -637,6 +643,24 @@ class MainWindow(QMainWindow):
         self._history_baseline()
         self._refresh_all()
 
+    def _clear_competitors(self) -> None:
+        n = len(self._competition.competitors)
+        if n == 0:
+            QMessageBox.information(self, "Poista kilpailijat", "Kilpailu on jo tyhjä.")
+            return
+        reply = QMessageBox.question(
+            self,
+            "Poista kaikki kilpailijat",
+            f"Poistetaanko kaikki {n} kilpailijaa?\n\n"
+            "Tätä ei voi perua.",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+        removed = self._competition_service.clear_competitors(self._competition)
+        self._refresh_all()
+        self._status.showMessage(f"Poistettu {removed} kilpailijaa", 4000)
+
     def _selected_plan_class_id(self) -> str | None:
         row = self._plan_table.currentRow()
         if row < 0:
@@ -809,7 +833,7 @@ class MainWindow(QMainWindow):
             "Sarjajärjestys": self._class_order_page,
             "Ratajärjestys": self._course_order_page,
             "Radat": self._courses_table,
-            "Kilpailijat": self._competitors_table,
+            "Kilpailijat": self._competitors_page,
             "Lähtökaavio": self._plan_page,
             "Aikajana": self._timeline_table,
             "Ruudukko": self._grid_table,
