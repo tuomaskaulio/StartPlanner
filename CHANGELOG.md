@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.4
+
+- Aktiivisen lähdön vaihto ei enää tyhjennä koko kumoa/tee uudelleen -historiaa; kumoushistoria on nyt lähtökohtainen
+- Projektin tallennus (`.spc`) on atominen: kirjoitus tehdään väliaikaistiedostoon ja vaihdetaan lopulliseksi vasta onnistumisen jälkeen, joten kesken jäänyt tallennus ei enää tuhoa vanhaa projektitiedostoa
+- "Siirrä sarja" -dialogissa voi nyt valita myös päivämäärän, joten sarjan voi siirtää seuraavalle vuorokaudelle
+- Condes-tuonnissa desimaaliluku-tokenit (esim. rataetäisyys "3.2") eivät enää päädy virheellisesti sarjatunnisteeksi
+
 ## 0.8.3
 
 - Korjattu virhe, jossa lukittu sarja säilytti vanhan lähtöaika-ankkurinsa mutta varasi paikat uuden, elävän kilpailijamäärän mukaan — tämä saattoi työntää radan seuraavat sarjat seuraavalle vuorokaudelle "Poista kaikki kilpailijat" + uuden ilmoittautumislistan tuonnin jälkeen
