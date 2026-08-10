@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.5
+
+- README päivitetty: versiotiedot ajan tasalle, maininta tekoälyavusteisesta kehityksestä ja käytöstä omalla vastuulla
+
 ## 0.8.4
 
 - Aktiivisen lähdön vaihto ei enää tyhjennä koko kumoa/tee uudelleen -historiaa; kumoushistoria on nyt lähtökohtainen

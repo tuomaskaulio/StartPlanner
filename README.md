@@ -2,6 +2,8 @@
 
 Avoimen lähdekoodin työpöytäsovellus suunnistuskilpailujen lähtökaavioiden suunnitteluun.
 
+> **Huomioitavaa:** Ohjelma on kehitetty pääosin tekoälyn (Claude) avulla. Käyttö on omalla vastuulla — ohjelmalle ei anneta mitään takuita toimivuudesta tai virheettömyydestä, eikä sen tuottamia lähtökaavioita tule käyttää tarkistamatta niitä ennen kilpailua.
+
 ## Vaatimukset
 
 - Python ≥ 3.12
@@ -27,7 +29,7 @@ python -m startplanner.main
 
 Katso [docs/user-guide.md](docs/user-guide.md).
 
-## Tyypillinen työnkulku (v0.6)
+## Tyypillinen työnkulku
 
 1. Tuo ratatiedot (IOF CourseData 3.0, Condes) – useita XML:iä kerralla ok
 2. Tuo ilmoittautumiset (IRMA Pirilä)
@@ -64,4 +66,4 @@ pytest
 
 ## Versio
 
-Nykyinen kehitysversio: **0.6.0** (PDF, Excel-ruudukko, käyttäjäohje, paketoinnin alku).
+Nykyinen versio: **0.8.5**. Versiohistoria ja muutokset: [CHANGELOG.md](CHANGELOG.md).
