@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.7
+
+- Kilpailijat-välilehdellä voi nyt poistaa yksittäisen kilpailijan (oikea klikkaus → "Poista valittu")
+- Radat- ja Sarjat-välilehdillä voi poistaa yksittäisen radan tai sarjan oikealla klikkauksella; poisto pyyhkii kaskadina myös radan/sarjan kilpailijat, lähtökaavion rivit sekä rata↔sarja-tuontikytkennät, jotta projektiin ei jää orpoja viittauksia
+- Uusi "Poista kaikki radat ja sarjat" -painike Radat-välilehdellä tyhjentää koko rata- ja sarjarakenteen kerralla (kuten "Poista kaikki kilpailijat")
+
 ## 0.8.6
 
 - "Siirrä sarja" -dialogi yksinkertaistettu takaisin pelkäksi kellonajaksi; täyden päivämäärävalitsimen sijaan on nyt valintaruutu "Siirrä seuraavalle vuorokaudelle (+1 pv)" harvinaista vuorokauden ylitystä varten

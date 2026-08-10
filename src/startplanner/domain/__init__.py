@@ -182,6 +182,47 @@ class Competition:
         """Remove a single competitor by id. Returns True if removed."""
         return self.competitors.pop(competitor_id, None) is not None
 
+    def remove_class(self, class_id: str) -> bool:
+        """Remove a class and cascade: its competitors, its plan entries
+        (on every start location), and its class_course_map entry.
+        Returns True if removed."""
+        rc = self.classes.pop(class_id, None)
+        if rc is None:
+            return False
+        for comp_id in [
+            cid for cid, comp in self.competitors.items() if comp.class_id == class_id
+        ]:
+            del self.competitors[comp_id]
+        for plan in self.plans.values():
+            plan.entries = [e for e in plan.entries if e.class_id != class_id]
+        self.class_course_map.pop(rc.name, None)
+        return True
+
+    def remove_course(self, course_id: str) -> bool:
+        """Remove a course, cascading to every class assigned to it (see
+        `remove_class`), plus any class_course_map entries pointing at it
+        for class names that were never instantiated as a RaceClass.
+        Returns True if removed."""
+        if course_id not in self.courses:
+            return False
+        for class_id in [rc.id for rc in self.classes.values() if rc.course_id == course_id]:
+            self.remove_class(class_id)
+        del self.courses[course_id]
+        for name in [n for n, cid in self.class_course_map.items() if cid == course_id]:
+            del self.class_course_map[name]
+        return True
+
+    def clear_courses_and_classes(self) -> tuple[int, int]:
+        """Wipe all courses and classes (and, transitively, their
+        competitors and plan entries). Name/settings/start_locations are
+        untouched. Returns (courses removed, classes removed)."""
+        n_courses, n_classes = len(self.courses), len(self.classes)
+        for class_id in list(self.classes.keys()):
+            self.remove_class(class_id)
+        self.courses.clear()
+        self.class_course_map.clear()
+        return n_courses, n_classes
+
     def clear_competitors(self) -> int:
         """Remove all competitors from the competition.
 

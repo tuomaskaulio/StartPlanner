@@ -139,3 +139,16 @@ class ClassService:
             for rc in competition.classes.values()
             if not rc.course_id or rc.course_id not in competition.courses
         )
+
+    def remove_class(self, competition: Competition, class_id: str) -> None:
+        if class_id not in competition.classes:
+            raise StartPlannerError(f"Tuntematon sarja: {class_id}")
+        competition.remove_class(class_id)
+
+    def remove_course(self, competition: Competition, course_id: str) -> None:
+        if course_id not in competition.courses:
+            raise StartPlannerError(f"Tuntematon rata: {course_id}")
+        competition.remove_course(course_id)
+
+    def clear_courses_and_classes(self, competition: Competition) -> tuple[int, int]:
+        return competition.clear_courses_and_classes()
