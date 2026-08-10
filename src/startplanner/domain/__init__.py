@@ -185,19 +185,15 @@ class Competition:
     def clear_competitors(self) -> int:
         """Remove all competitors from the competition.
 
-        Also clears any locks on the start plan and on classes: a lock's
-        anchor time and reserved slot count were computed for the old
-        roster and are no longer trustworthy once it is wiped.
+        Locks on the start plan and on classes are left untouched — a
+        re-imported roster that grows a locked class past its old anchor
+        is rare, and is already surfaced via the `plan.next_day` warning
+        and the "(+1 pv)" marker rather than silently unlocked here.
 
         Returns the number of competitors removed.
         """
         count = len(self.competitors)
         self.competitors.clear()
-        for plan in self.plans.values():
-            for entry in plan.entries:
-                entry.locked = False
-        for rc in self.classes.values():
-            rc.locked = False
         return count
 
     def set_plan(self, plan: ClassStartPlan) -> None:

@@ -7,14 +7,13 @@ from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from uuid import uuid4
 
-from PySide6.QtCore import QDate, QDateTime, Qt, QTime
+from PySide6.QtCore import QDate, Qt, QTime
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QComboBox,
     QDateEdit,
-    QDateTimeEdit,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
@@ -710,35 +709,38 @@ class MainWindow(QMainWindow):
         self._set_class_first_time(class_id, new_time, "Siirrä sarja")
 
     def _prompt_new_start_time(self, current: datetime) -> datetime | None:
-        """Ask for a new start date+time, defaulting to `current`.
+        """Ask for a new start time (HH:MM) plus an optional next-day flag.
 
-        Uses a date+time picker (not just HH:MM) so a class can be moved
-        across midnight — the schedule already supports start times on the
-        day after the competition date ("+1 pv").
+        The resulting date is always the competition date (or today, if
+        unset) — crossing midnight is rare, so it's an explicit checkbox
+        rather than a full calendar date picker.
         """
+        event_date = self._competition.event_date or date.today()
         dlg = QDialog(self)
         dlg.setWindowTitle("Siirrä sarja")
         layout = QFormLayout(dlg)
-        picker = QDateTimeEdit()
-        picker.setDisplayFormat("dd.MM.yyyy HH:mm")
-        picker.setCalendarPopup(True)
-        picker.setDateTime(
-            QDateTime(
-                QDate(current.year, current.month, current.day),
-                QTime(current.hour, current.minute),
-            )
-        )
-        layout.addRow("Uusi 1. lähtöaika", picker)
+        time_edit = QTimeEdit()
+        time_edit.setDisplayFormat("HH:mm")
+        time_edit.setTime(QTime(current.hour, current.minute))
+        layout.addRow("Uusi 1. lähtöaika", time_edit)
+        next_day = QCheckBox("Siirrä seuraavalle vuorokaudelle (+1 pv)")
+        next_day.setChecked(current.date() == event_date + timedelta(days=1))
+        layout.addRow(next_day)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(dlg.accept)
         buttons.rejected.connect(dlg.reject)
         layout.addRow(buttons)
         if dlg.exec() != QDialog.Accepted:
             return None
-        qdt = picker.dateTime()
-        qd = qdt.date()
-        qt = qdt.time()
-        return datetime(qd.year(), qd.month(), qd.day(), qt.hour(), qt.minute())
+        t = time_edit.time()
+        return self._resolve_move_datetime(
+            time(t.hour(), t.minute()), next_day.isChecked(), event_date
+        )
+
+    @staticmethod
+    def _resolve_move_datetime(new_time: time, next_day: bool, event_date: date) -> datetime:
+        day = event_date + timedelta(days=1) if next_day else event_date
+        return datetime.combine(day, new_time)
 
     def _toggle_lock_selected(self) -> None:
         class_id = self._selected_plan_class_id()

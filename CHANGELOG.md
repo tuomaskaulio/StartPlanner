@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.6
+
+- "Siirrä sarja" -dialogi yksinkertaistettu takaisin pelkäksi kellonajaksi; täyden päivämäärävalitsimen sijaan on nyt valintaruutu "Siirrä seuraavalle vuorokaudelle (+1 pv)" harvinaista vuorokauden ylitystä varten
+- `Competition.clear_competitors()` ei enää nollaa sarjojen tai lähtöaikojen lukituksia — lukitukset säilyvät "Poista kaikki kilpailijat" -toiminnon yli. Mahdollinen vuorokauden ylitys näkyy silti "(+1 pv)" -merkintänä ja `plan.next_day`-varoituksena Huomiot-välilehdellä
+
 ## 0.8.5
 
 - README päivitetty: versiotiedot ajan tasalle, maininta tekoälyavusteisesta kehityksestä ja käytöstä omalla vastuulla
