@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0
+
+- Uusi "Aloitus"-välilehti ohjaa uuden kilpailun perustamisen: ratatietojen tuonti, ilmoittautumisten tuonti ja lähtökaavion toteutus samalta sivulta
+- Muut välilehdet piilotetaan kunnes sekä ratatiedot että ilmoittautumiset on tuotu; sääntö perustuu kilpailun tietoihin ja koskee yhtä lailla uutta kuin avattua projektia — jos data myöhemmin tyhjenee (esim. "Poista kaikki radat ja sarjat"), sovellus palaa Aloitukseen
+- Poistettu vanha kysymysketju uuden kilpailun jälkeen ("tuodaanko ratatiedot nyt?" / "tuodaanko ilmoittautumiset nyt?" / "muodostetaanko kaavio automaattisesti?") ja siihen liittynyt valintaruutu — Aloitus-välilehden painikkeet korvaavat sen
+
 ## 0.8.7
 
 - Kilpailijat-välilehdellä voi nyt poistaa yksittäisen kilpailijan (oikea klikkaus → "Poista valittu")

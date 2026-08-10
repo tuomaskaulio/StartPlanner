@@ -1,6 +1,6 @@
 # StartPlanner – käyttäjäohje
 
-Versio 0.7. Uusi kilpailu -velho, PDF-vienti ja käyttäjäohje.
+Versio 0.9. Ohjattu Aloitus-välilehti uuden kilpailun perustamiseen, PDF-vienti ja käyttäjäohje.
 
 ## Käynnistys
 
@@ -52,18 +52,28 @@ Paikallinen PyInstaller-build: ks. [README](../README.md#asennuspaketit).
 
 ## Tyypillinen työnkulku
 
-1. **Uusi kilpailu** – ohjattu velho kysyy peräkkäin:
-   - kilpailun tiedot (nimi, aloitusaika, lähtöväli, sarjaväli)
-   - ratatiedot (Condes XML)
-   - ilmoittautumiset (IRMA Pirilä CSV)
-   Jokainen vaihe on valinnainen – voit painaa **Peruuta** milloin tahansa.
-2. **Sarjat** – kytke puuttuvat sarjat radoihin; säädä lähtö ja lähtöväli.
-3. **Sarjajärjestys** – raahaa sarjoja haluttuun järjestykseen (näkyy kaaviossa).
-4. **Lähdöt** – nimeä lähdöt; tarvittaessa aseta lähdön oma 1. lähtöaika.
-5. **Kilpailun asetukset** – kilpailun nimi, oletusväli, sarjaväli, kilpailun aloitusaika.
-6. **Muodosta lähtökaavio** (aktiivinen lähtö). Tarkista **Huomiot**, aikajana ja ruudukko.
-7. **Jälki-ilmoittautuneet** – tuo uusi IRMA-CSV ja päivitä kaavio (olemassa olevat ajat säilyvät).
-8. **Vie** Excel / CSV / PDF / Ruudukko PDF. **Tallenna** projekti `.spc`-tiedostoon.
+1. **Uusi kilpailu** – dialogi kysyy kilpailun tiedot (nimi, aloitusaika,
+   lähtöväli, sarjaväli) kerralla. Sovellus avautuu **Aloitus**-välilehdelle.
+2. **Aloitus** – ohjaa perustamisen kahdella painikkeella:
+   - **Lataa ratatiedot…** (Condes XML)
+   - **Lataa ilmoittautumiset…** (IRMA Pirilä CSV)
+   Muut välilehdet (Sarjat, Lähdöt, Lähtökaavio, jne.) pysyvät piilossa
+   kunnes molemmat on ladattu — sama sääntö koskee myös vanhan `.spc`-projektin
+   avaamista, jos siitä puuttuu vielä ratatiedot tai ilmoittautumiset.
+   Kun molemmat on ladattu, Aloitukseen ilmestyy kolmas painike, **Toteuta
+   lähtökaavio**, ja kaikki muut välilehdet avautuvat.
+3. **Sarjat** – kytke puuttuvat sarjat radoihin; säädä lähtö ja lähtöväli.
+   Sarjan (ja sen kilpailijat) voi poistaa oikealla klikkauksella.
+4. **Sarjajärjestys** – raahaa sarjoja haluttuun järjestykseen (näkyy kaaviossa).
+5. **Radat** – rataväli näkyy täällä; radan (ja sen sarjat) voi poistaa oikealla
+   klikkauksella, tai kaikki radat ja sarjat kerralla "Poista kaikki radat ja
+   sarjat" -painikkeella.
+6. **Lähdöt** – nimeä lähdöt; tarvittaessa aseta lähdön oma 1. lähtöaika.
+7. **Kilpailun asetukset** – kilpailun nimi, oletusväli, sarjaväli, kilpailun aloitusaika.
+8. **Muodosta lähtökaavio** (aktiivinen lähtö). Tarkista **Huomiot**, aikajana ja ruudukko.
+9. **Jälki-ilmoittautuneet** – tuo uusi IRMA-CSV ja päivitä kaavio (olemassa olevat ajat säilyvät).
+   Yksittäisen kilpailijan voi poistaa Kilpailijat-välilehdellä oikealla klikkauksella.
+10. **Vie** Excel / CSV / PDF / Ruudukko PDF. **Tallenna** projekti `.spc`-tiedostoon.
 
 ## Tuontiformaatit
 
@@ -106,5 +116,8 @@ Paikallinen PyInstaller-build: ks. [README](../README.md#asennuspaketit).
 ## Vinkkejä
 
 - Lukitse sarja kaaviosta, jos aika ei saa muuttua optimoinnissa tai päivityksessä.
+  Lukitus säilyy myös kilpailijoiden poiston yli — jos kilpailijamäärän kasvu
+  työntää myöhemmät sarjat seuraavalle vuorokaudelle, se näkyy "(+1 pv)"
+  -merkintänä ja varoituksena Huomiot-välilehdellä.
 - Radan **Sarjaväli** Radat-välilehdellä yliajaa kilpailun oletussarjavälin.
 - Kumoa / Tee uudelleen koskee aktiivisen lähdön kaaviota.

@@ -66,4 +66,4 @@ pytest
 
 ## Versio
 
-Nykyinen versio: **0.8.5**. Versiohistoria ja muutokset: [CHANGELOG.md](CHANGELOG.md).
+Nykyinen versio: **0.9.0**. Versiohistoria ja muutokset: [CHANGELOG.md](CHANGELOG.md).
