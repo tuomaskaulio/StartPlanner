@@ -7,13 +7,14 @@ from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from uuid import uuid4
 
-from PySide6.QtCore import QDate, Qt, QTime
+from PySide6.QtCore import QDate, QDateTime, Qt, QTime
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QComboBox,
     QDateEdit,
+    QDateTimeEdit,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
@@ -199,20 +200,34 @@ class MainWindow(QMainWindow):
         self._validator = ValidationService()
         self._quality = QualityService()
         self._optimizer = OptimizerService()
-        self._history = HistoryService()
-        self._history_baseline()
+        self._histories: dict[str, HistoryService] = {}
+        self._reset_all_history()
 
         self._build_ui()
         self._refresh_all()
 
-    def _history_baseline(self) -> None:
-        self._history.clear()
-        plan = self._competition.plan_for(self._active_location_id)
-        self._history.push("Alku", plan)
+    def _active_history(self) -> HistoryService:
+        """History stack for the active start location, created lazily.
+
+        Kept per-location (not a single shared stack) so that switching the
+        active start location — a routine action, not a reset — never
+        discards undo/redo state for other locations.
+        """
+        history = self._histories.get(self._active_location_id)
+        if history is None:
+            history = HistoryService()
+            history.push("Alku", self._competition.plan_for(self._active_location_id))
+            self._histories[self._active_location_id] = history
+        return history
+
+    def _reset_all_history(self) -> None:
+        """Discard undo/redo for every location (new/opened/imported competition)."""
+        self._histories = {}
+        self._active_history()
 
     def _record_plan(self, description: str) -> None:
         plan = self._competition.plan_for(self._active_location_id)
-        self._history.push(description, plan)
+        self._active_history().push(description, plan)
 
     def _build_ui(self) -> None:
         menu = self.menuBar()
@@ -377,8 +392,9 @@ class MainWindow(QMainWindow):
         self._update_history_actions()
 
     def _update_history_actions(self) -> None:
-        self._undo_action.setEnabled(self._history.can_undo())
-        self._redo_action.setEnabled(self._history.can_redo())
+        history = self._active_history()
+        self._undo_action.setEnabled(history.can_undo())
+        self._redo_action.setEnabled(history.can_redo())
 
     def _new_project(self) -> None:
         dlg = NewCompetitionDialog(self)
@@ -396,7 +412,7 @@ class MainWindow(QMainWindow):
         self._active_location_id = next(iter(self._competition.start_locations))
         self._project_path = None
         self._auto_build_schedule = dlg.auto_build
-        self._history_baseline()
+        self._reset_all_history()
         self._refresh_all()
         self._prompt_course_data()
 
@@ -453,7 +469,7 @@ class MainWindow(QMainWindow):
             self._competition.ensure_default_start_location()
             self._active_location_id = next(iter(self._competition.start_locations))
             self._project_path = Path(path)
-            self._history_baseline()
+            self._reset_all_history()
             self._refresh_all()
         except StartPlannerError as exc:
             QMessageBox.critical(self, "Virhe", str(exc))
@@ -499,7 +515,7 @@ class MainWindow(QMainWindow):
                     )
             self._competition = competition
             self._active_location_id = next(iter(self._competition.start_locations))
-            self._history_baseline()
+            self._reset_all_history()
             self._refresh_all()
             self._maybe_auto_build_schedule()
             self._status.showMessage(f"Ratatiedot tuotu: {len(paths)} tiedostoa", 4000)
@@ -613,7 +629,7 @@ class MainWindow(QMainWindow):
         self._status.showMessage("Asetukset päivitetty", 3000)
 
     def _undo(self) -> None:
-        snap = self._history.undo()
+        snap = self._active_history().undo()
         if snap is None:
             return
         self._apply_plan_snapshot(snap.plan)
@@ -621,7 +637,7 @@ class MainWindow(QMainWindow):
         self._status.showMessage(f"Kumottu → {snap.description}", 3000)
 
     def _redo(self) -> None:
-        snap = self._history.redo()
+        snap = self._active_history().redo()
         if snap is None:
             return
         self._apply_plan_snapshot(snap.plan)
@@ -641,7 +657,7 @@ class MainWindow(QMainWindow):
         loc = StartLocation(id=f"start:{uuid4()}", name=name.strip())
         self._competition.add_start_location(loc)
         self._active_location_id = loc.id
-        self._history_baseline()
+        self._active_history()  # establish baseline for the new location only
         self._refresh_all()
 
     def _clear_competitors(self) -> None:
@@ -688,19 +704,41 @@ class MainWindow(QMainWindow):
         if rc and (rc.locked or entry.locked):
             QMessageBox.warning(self, "Siirrä", "Sarja on lukittu.")
             return
-        current = entry.first_start_time.strftime("%H:%M")
-        text, ok = QInputDialog.getText(
-            self, "Siirrä sarja", "Uusi 1. lähtöaika (HH:MM):", text=current
-        )
-        if not ok or not text.strip():
-            return
-        try:
-            hh, mm = text.strip().split(":")
-            new_time = entry.first_start_time.replace(hour=int(hh), minute=int(mm), second=0)
-        except ValueError:
-            QMessageBox.warning(self, "Siirrä", "Anna aika muodossa HH:MM.")
+        new_time = self._prompt_new_start_time(entry.first_start_time)
+        if new_time is None:
             return
         self._set_class_first_time(class_id, new_time, "Siirrä sarja")
+
+    def _prompt_new_start_time(self, current: datetime) -> datetime | None:
+        """Ask for a new start date+time, defaulting to `current`.
+
+        Uses a date+time picker (not just HH:MM) so a class can be moved
+        across midnight — the schedule already supports start times on the
+        day after the competition date ("+1 pv").
+        """
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Siirrä sarja")
+        layout = QFormLayout(dlg)
+        picker = QDateTimeEdit()
+        picker.setDisplayFormat("dd.MM.yyyy HH:mm")
+        picker.setCalendarPopup(True)
+        picker.setDateTime(
+            QDateTime(
+                QDate(current.year, current.month, current.day),
+                QTime(current.hour, current.minute),
+            )
+        )
+        layout.addRow("Uusi 1. lähtöaika", picker)
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dlg.accept)
+        buttons.rejected.connect(dlg.reject)
+        layout.addRow(buttons)
+        if dlg.exec() != QDialog.Accepted:
+            return None
+        qdt = picker.dateTime()
+        qd = qdt.date()
+        qt = qdt.time()
+        return datetime(qd.year(), qd.month(), qd.day(), qt.hour(), qt.minute())
 
     def _toggle_lock_selected(self) -> None:
         class_id = self._selected_plan_class_id()
@@ -824,7 +862,10 @@ class MainWindow(QMainWindow):
         loc_id = self._location_combo.itemData(index)
         if loc_id:
             self._active_location_id = loc_id
-            self._history_baseline()
+            # Switching the active location must not discard its undo/redo
+            # history — _active_history() only creates a baseline if this
+            # location has never been visited before.
+            self._active_history()
             self._refresh_plan_and_status()
 
     def _on_tree_clicked(self, item: QTreeWidgetItem, _col: int) -> None:
