@@ -7,7 +7,7 @@ from pathlib import Path
 
 from openpyxl import Workbook
 
-from startplanner.domain import Competition
+from startplanner.domain import Competition, format_start_time
 from startplanner.services.course_grid import build_course_grid
 
 
@@ -52,7 +52,7 @@ def _plan_rows(
                 [
                     loc_name,
                     str(rc.sort_order if rc else ""),
-                    entry.first_start_time.strftime("%H:%M"),
+                    format_start_time(entry.first_start_time, competition.event_date),
                     rc.name if rc else "",
                     str(competition.competitor_count(entry.class_id)),
                     str(rc.start_interval_min if rc else ""),
@@ -79,7 +79,7 @@ def _write_grid_sheet(wb: Workbook, competition: Competition, loc_id: str) -> No
     ]
     ws.append(header)
     for minute in grid.minutes:
-        row = [minute.strftime("%H:%M"), grid.total(minute)]
+        row = [format_start_time(minute, competition.event_date), grid.total(minute)]
         for col in grid.columns:
             row.append(grid.cell(minute, col.course_id))
         ws.append(row)

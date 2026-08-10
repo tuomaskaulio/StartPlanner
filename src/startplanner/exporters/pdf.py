@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 from fpdf import FPDF
 
-from startplanner.domain import Competition
+from startplanner.domain import Competition, format_start_time
 from startplanner.exporters.excel import _plan_rows
 from startplanner.services.course_grid import CourseGrid, build_course_grid
 
@@ -128,7 +129,7 @@ class PdfExporter:
                 new_y="NEXT",
             )
             pdf.ln(2)
-            self._write_grid_table(pdf, grid, font_name)
+            self._write_grid_table(pdf, grid, font_name, competition.event_date)
 
         if not wrote_any:
             pdf.add_page()
@@ -144,7 +145,11 @@ class PdfExporter:
         pdf.output(str(path))
 
     def _write_grid_table(
-        self, pdf: FPDF, grid: CourseGrid, font_name: str
+        self,
+        pdf: FPDF,
+        grid: CourseGrid,
+        font_name: str,
+        event_date: date | None = None,
     ) -> None:
         headers = ["Aika", "Yht"] + [
             f"{col.course_name} ({col.first_control or '—'})" for col in grid.columns
@@ -187,7 +192,7 @@ class PdfExporter:
                 pdf.set_font(font_name, size=font_size)
 
             values = [
-                minute.strftime("%H:%M"),
+                format_start_time(minute, event_date),
                 str(grid.total(minute)),
             ] + [grid.cell(minute, col.course_id) for col in grid.columns]
             for width, value in zip(widths, values):

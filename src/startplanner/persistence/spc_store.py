@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from datetime import date, datetime, time
 from pathlib import Path
@@ -90,19 +91,27 @@ class SpcStore:
     PROJECT_VERSION = "2"
 
     def save(self, competition: Competition, path: str | Path) -> None:
+        """Write to a temp file and atomically replace `path`.
+
+        The previous file must survive a failed save (disk full, crash,
+        etc.) — deleting it up front before writing was a data-loss trap.
+        """
         p = Path(path)
+        tmp = p.with_name(f".{p.name}.tmp-{uuid4().hex}")
         try:
-            if p.exists():
-                p.unlink()
-            conn = sqlite3.connect(p)
             try:
-                conn.executescript(SCHEMA)
-                self._write(conn, competition)
-                conn.commit()
-            finally:
-                conn.close()
-        except sqlite3.Error as exc:
-            raise PersistenceError(f"Tallennus epäonnistui: {exc}") from exc
+                conn = sqlite3.connect(tmp)
+                try:
+                    conn.executescript(SCHEMA)
+                    self._write(conn, competition)
+                    conn.commit()
+                finally:
+                    conn.close()
+                os.replace(tmp, p)
+            except (sqlite3.Error, OSError) as exc:
+                raise PersistenceError(f"Tallennus epäonnistui: {exc}") from exc
+        finally:
+            tmp.unlink(missing_ok=True)
 
     def load(self, path: str | Path) -> Competition:
         p = Path(path)

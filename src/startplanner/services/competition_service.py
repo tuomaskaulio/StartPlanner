@@ -32,3 +32,10 @@ class CompetitionService:
 
     def load(self, path: str | Path) -> Competition:
         return self._store.load(path)
+
+    def clear_competitors(self, competition: Competition) -> int:
+        """Remove all competitors from the competition.
+
+        Returns the number of competitors removed.
+        """
+        return competition.clear_competitors()

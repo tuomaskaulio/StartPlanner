@@ -30,7 +30,7 @@ def class_tokens_from_course_name(name: str) -> list[str]:
     for part in parts:
         if not part:
             continue
-        if re.fullmatch(r"\d+", part):
+        if re.fullmatch(r"\d+([.,]\d+)?", part):
             continue
         tokens.append(part)
     return tokens

@@ -172,6 +172,22 @@ class ValidationService:
             )
             return issues
 
+        if competition.event_date is not None:
+            for entry in plan.entries:
+                if entry.first_start_time.date() != competition.event_date:
+                    rc = competition.classes.get(entry.class_id)
+                    name = rc.name if rc else entry.class_id
+                    issues.append(
+                        Issue(
+                            "plan.next_day",
+                            Severity.WARNING,
+                            f"Sarjan {name} lähtöaika ({entry.first_start_time.strftime('%d.%m.%Y %H:%M')}) "
+                            "on eri vuorokautena kuin kilpailupäivä",
+                            "class",
+                            entry.class_id,
+                        )
+                    )
+
         by_class = {e.class_id: e for e in plan.entries}
         for rc in competition.classes_at_location(plan.start_location_id):
             if (

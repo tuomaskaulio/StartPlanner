@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.8.5
+
+- README päivitetty: versiotiedot ajan tasalle, maininta tekoälyavusteisesta kehityksestä ja käytöstä omalla vastuulla
+
+## 0.8.4
+
+- Aktiivisen lähdön vaihto ei enää tyhjennä koko kumoa/tee uudelleen -historiaa; kumoushistoria on nyt lähtökohtainen
+- Projektin tallennus (`.spc`) on atominen: kirjoitus tehdään väliaikaistiedostoon ja vaihdetaan lopulliseksi vasta onnistumisen jälkeen, joten kesken jäänyt tallennus ei enää tuhoa vanhaa projektitiedostoa
+- "Siirrä sarja" -dialogissa voi nyt valita myös päivämäärän, joten sarjan voi siirtää seuraavalle vuorokaudelle
+- Condes-tuonnissa desimaaliluku-tokenit (esim. rataetäisyys "3.2") eivät enää päädy virheellisesti sarjatunnisteeksi
+
+## 0.8.3
+
+- Korjattu virhe, jossa lukittu sarja säilytti vanhan lähtöaika-ankkurinsa mutta varasi paikat uuden, elävän kilpailijamäärän mukaan — tämä saattoi työntää radan seuraavat sarjat seuraavalle vuorokaudelle "Poista kaikki kilpailijat" + uuden ilmoittautumislistan tuonnin jälkeen
+- `Competition.clear_competitors()` nollaa nyt myös lähtökaavion ja sarjojen lukitukset, koska vanha lukittu kellonaika ei ole enää luotettava koko roolituksen pyyhkimisen jälkeen
+
+## 0.8.2
+
+- Lähtöaika, joka siirtyy kilpailupäivästä seuraavalle vuorokaudelle, näytetään merkinnällä "(+1 pv)" lähtökaaviossa, aikajanalla, ruudukossa sekä Excel/CSV/PDF-vienneissä (ennen näytettiin vain "HH:MM" ja vuorokausi hävisi näkyvistä)
+- Validointi varoittaa, kun sarjan lähtöaika osuu eri vuorokaudelle kuin kilpailupäivä (`plan.next_day`)
+
+## 0.8.1
+
+- Kilpailusta voi poistaa kaikki kilpailijat (painike "Poista kaikki kilpailijat" Kilpailijat-välilehdellä)
+
 ## 0.8.0
 
 - Sarjalle voi määrittää tyhjien lähtöaikojen määrän ennen sarjaa (`empty_slots_before`). Oletus 0. Sarjan ja edellisen radan sarjan väliin jätetään `sarjaväli + tyhjät × lähtöväli` minuuttia. Jos sarja on radan ensimmäinen, se alkaa `tyhjät × lähtöväli` minuuttia lähdön aloituksen jälkeen.
