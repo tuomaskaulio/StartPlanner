@@ -237,6 +237,8 @@ class MainWindow(QMainWindow):
         file_menu.addAction("Vie ruudukko PDF…", self._export_grid_pdf)
 
         self._competition_menu = menu.addMenu("Kilpailu")
+        self._competition_menu.addAction("Kilpailun asetukset…", self._edit_settings)
+        self._competition_menu.addSeparator()
         self._competition_menu.addAction(
             "Tuo ratatiedot (IOF CourseData 3.0, Condes)…",
             self._import_coursedata,
@@ -255,8 +257,6 @@ class MainWindow(QMainWindow):
         self._undo_action.setShortcut("Ctrl+Z")
         self._redo_action = edit_menu.addAction("Tee uudelleen", self._redo)
         self._redo_action.setShortcut("Ctrl+Shift+Z")
-        edit_menu.addSeparator()
-        edit_menu.addAction("Kilpailun asetukset…", self._edit_settings)
 
         self._schedule_menu = menu.addMenu("Lähtökaavio")
         self._schedule_menu.addAction(
@@ -299,11 +299,14 @@ class MainWindow(QMainWindow):
         start_layout = QVBoxLayout(self._start_page)
         start_layout.addWidget(
             QLabel(
-                "Tuo ensin ratatiedot ja ilmoittautumiset. Kun molemmat on "
-                "tuotu, muut välilehdet avautuvat ja lähtökaavion voi "
-                "toteuttaa."
+                "Luo tai avaa kilpailu, tuo sitten ratatiedot ja "
+                "ilmoittautumiset. Kun molemmat on tuotu, muut välilehdet "
+                "avautuvat ja lähtökaavion voi toteuttaa."
             )
         )
+        self._start_new_competition_btn = QPushButton("Luo uusi kilpailu…")
+        self._start_new_competition_btn.clicked.connect(self._new_project)
+        start_layout.addWidget(self._start_new_competition_btn)
         self._start_course_status = QLabel()
         start_layout.addWidget(self._start_course_status)
         self._start_course_btn = QPushButton("Lataa ratatiedot…")
@@ -513,15 +516,8 @@ class MainWindow(QMainWindow):
             return
         try:
             competition = self._competition
-            for i, path in enumerate(paths):
-                if i == 0 and (
-                    not competition.courses and not competition.classes
-                ):
-                    competition = self._import_service.import_coursedata(path)
-                else:
-                    competition = self._import_service.import_coursedata(
-                        path, competition
-                    )
+            for path in paths:
+                competition = self._import_service.import_coursedata(path, competition)
             self._competition = competition
             self._active_location_id = next(iter(self._competition.start_locations))
             self._reset_all_history()

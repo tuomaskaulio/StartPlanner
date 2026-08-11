@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.2
+
+- Korjattu bugi, jossa ratatietojen tuonti nollasi kilpailun asetukset (aloitusaika, oletuslähtöväli, sarjaväli), nimen ja päivämäärän oletusarvoihin — tuonti yhdistetään nyt aina olemassa olevaan kilpailuun, ei koskaan luo uutta tyhjää kilpailua tuonnin yhteydessä
+- Aloitus-välilehdelle uusi "Luo uusi kilpailu…" -painike; toisin kuin muut Aloitus-sivun painikkeet, se on aina käytettävissä
+- "Kilpailun asetukset…" siirretty Muokkaa-valikosta Kilpailu-valikkoon
+
 ## 0.9.1
 
 - Uusi "Kilpailu"-päävalikko kokoaa tuontitoiminnot (ratatiedot, ilmoittautumiset, jälki-ilmoittautuneet), jotka olivat aiemmin Tiedosto-valikossa
