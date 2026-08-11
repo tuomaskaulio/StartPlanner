@@ -317,6 +317,9 @@ class MainWindow(QMainWindow):
         self._start_entries_btn = QPushButton("Lataa ilmoittautumiset…")
         self._start_entries_btn.clicked.connect(self._import_entries)
         start_layout.addWidget(self._start_entries_btn)
+        self._start_late_entries_btn = QPushButton("Lataa jälki-ilmoittautuneet…")
+        self._start_late_entries_btn.clicked.connect(self._import_late_entries)
+        start_layout.addWidget(self._start_late_entries_btn)
         self._start_build_btn = QPushButton("Toteuta lähtökaavio")
         self._start_build_btn.clicked.connect(self._build_schedule)
         start_layout.addWidget(self._start_build_btn)
@@ -544,7 +547,7 @@ class MainWindow(QMainWindow):
         try:
             had_plan = bool(self._competition.plans)
             before = len(self._competition.competitors)
-            n = self._import_service.import_entries(self._competition, path)
+            n = self._import_service.import_entries(self._competition, path, late=late)
             self._refresh_all()
             self._status.showMessage(f"Tuotu {n} kilpailijaa", 4000)
             if had_plan and len(self._competition.competitors) > before:
@@ -926,13 +929,22 @@ class MainWindow(QMainWindow):
             else:
                 self._start_course_status.setText("Ratatietoja ei ole vielä ladattu.")
             if c.competitors:
-                self._start_entries_status.setText(
-                    f"✓ Ilmoittautumiset ladattu ({len(c.competitors)} kilpailijaa)"
-                )
+                total = len(c.competitors)
+                late_count = sum(1 for comp in c.competitors.values() if comp.late)
+                if late_count:
+                    self._start_entries_status.setText(
+                        f"✓ Ilmoittautumiset ladattu ({total} kilpailijaa, "
+                        f"joista {late_count} jälki-ilmoittautunutta)"
+                    )
+                else:
+                    self._start_entries_status.setText(
+                        f"✓ Ilmoittautumiset ladattu ({total} kilpailijaa)"
+                    )
             else:
                 self._start_entries_status.setText("Ilmoittautumisia ei ole vielä ladattu.")
         self._start_course_btn.setEnabled(self._has_competition)
         self._start_entries_btn.setEnabled(self._has_competition)
+        self._start_late_entries_btn.setEnabled(self._has_competition)
         self._start_build_btn.setVisible(ready)
 
     def _apply_tab_gating(self, ready: bool) -> None:

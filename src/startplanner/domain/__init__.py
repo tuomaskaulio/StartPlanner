@@ -85,6 +85,7 @@ class Competitor:
     emit: str | None = None
     birth_year: int | None = None
     locked: bool = False
+    late: bool = False
 
     @property
     def full_name(self) -> str:

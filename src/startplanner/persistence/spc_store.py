@@ -71,7 +71,8 @@ CREATE TABLE IF NOT EXISTS competitors (
     class_id TEXT NOT NULL,
     emit TEXT,
     birth_year INTEGER,
-    locked INTEGER NOT NULL
+    locked INTEGER NOT NULL,
+    late INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS class_starts (
     id TEXT PRIMARY KEY,
@@ -212,7 +213,7 @@ class SpcStore:
         for comp in competition.competitors.values():
             conn.execute(
                 "INSERT INTO competitors(id, first_name, last_name, club, class_id, "
-                "emit, birth_year, locked) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "emit, birth_year, locked, late) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     comp.id,
                     comp.first_name,
@@ -222,6 +223,7 @@ class SpcStore:
                     comp.emit,
                     comp.birth_year,
                     int(comp.locked),
+                    int(comp.late),
                 ),
             )
         for plan in competition.plans.values():
@@ -402,10 +404,19 @@ class SpcStore:
                     )
                 )
 
-        for r in conn.execute(
-            "SELECT id, first_name, last_name, club, class_id, emit, birth_year, locked "
-            "FROM competitors"
-        ):
+        comp_cols = [info[1] for info in conn.execute("PRAGMA table_info(competitors)")]
+        has_late = "late" in comp_cols
+        if has_late:
+            comp_sql = (
+                "SELECT id, first_name, last_name, club, class_id, emit, birth_year, "
+                "locked, late FROM competitors"
+            )
+        else:
+            comp_sql = (
+                "SELECT id, first_name, last_name, club, class_id, emit, birth_year, "
+                "locked FROM competitors"
+            )
+        for r in conn.execute(comp_sql):
             competition.add_competitor(
                 Competitor(
                     id=r[0],
@@ -416,6 +427,7 @@ class SpcStore:
                     emit=r[5],
                     birth_year=r[6],
                     locked=bool(r[7]),
+                    late=bool(r[8]) if has_late else False,
                 )
             )
 

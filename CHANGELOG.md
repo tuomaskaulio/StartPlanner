@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.4
+
+- Aloitus-välilehdelle uusi "Lataa jälki-ilmoittautuneet…" -painike, "Lataa ilmoittautumiset…" -painikkeen rinnalle
+- Kilpailijoille tallennetaan nyt pysyvä "jälki-ilmoittautunut"-tieto (säilyy `.spc`-tiedostossa); Aloitus-sivun tilasto näyttää erikseen kokonaismäärän ja siitä jälki-ilmoittautuneiden määrän
+
 ## 0.9.3
 
 - Ruudukon viimeinen sarake ei enää veny muita ratasarakkeita leveämmäksi — kaikki ratasarakkeet ovat nyt samanlevyisiä

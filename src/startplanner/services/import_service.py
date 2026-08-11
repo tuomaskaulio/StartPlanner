@@ -27,9 +27,11 @@ class ImportService:
         self._link_classes_to_courses(competition)
         return competition
 
-    def import_entries(self, competition: Competition, path: str | Path) -> int:
+    def import_entries(
+        self, competition: Competition, path: str | Path, *, late: bool = False
+    ) -> int:
         competition.ensure_default_start_location()
-        return self._irma.apply_to(competition, path)
+        return self._irma.apply_to(competition, path, late=late)
 
     @staticmethod
     def _link_classes_to_courses(competition: Competition) -> None:
