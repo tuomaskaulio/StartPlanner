@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.3
+
+- Ruudukon viimeinen sarake ei enää veny muita ratasarakkeita leveämmäksi — kaikki ratasarakkeet ovat nyt samanlevyisiä
+- Ruudukkoon lisätty värit: sarakkeen tausta on sama kaikilla samalla 1. rastilla alkavilla radoilla (helpottaa lähtökonfliktien havaitsemista), ja jokaisella sarjalla on oma, koko ruudukon läpi identtinen, vaalea soluväri
+
 ## 0.9.2
 
 - Korjattu bugi, jossa ratatietojen tuonti nollasi kilpailun asetukset (aloitusaika, oletuslähtöväli, sarjaväli), nimen ja päivämäärän oletusarvoihin — tuonti yhdistetään nyt aina olemassa olevaan kilpailuun, ei koskaan luo uutta tyhjää kilpailua tuonnin yhteydessä

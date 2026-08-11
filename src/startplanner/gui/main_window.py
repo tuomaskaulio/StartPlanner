@@ -1655,6 +1655,23 @@ class MainWindow(QMainWindow):
         ]
         self._fill_table(self._timeline_table, ["Aika", "Sarjat lähdössä"], rows)
 
+    @staticmethod
+    def _column_group_palette(n: int) -> list[QColor]:
+        """Pale background per distinct value (here: shared first control),
+        evenly spread across hues. Kept very light (high lightness, low
+        saturation) so it reads as a subtle column wash, not a highlight."""
+        if n <= 0:
+            return []
+        return [QColor.fromHsl(int(360 * i / n), 60, 245) for i in range(n)]
+
+    @staticmethod
+    def _class_color_palette(n: int) -> list[QColor]:
+        """Distinct, non-dark background per class, evenly spread across
+        hues — light enough to keep black text readable."""
+        if n <= 0:
+            return []
+        return [QColor.fromHsl(int(360 * i / n), 130, 205) for i in range(n)]
+
     def _refresh_course_grid(self, plan: ClassStartPlan | None) -> None:
         grid = build_course_grid(self._competition, plan)
         table = self._grid_table
@@ -1674,6 +1691,20 @@ class MainWindow(QMainWindow):
         table.setHorizontalHeaderLabels(headers)
         table.setRowCount(len(grid.minutes))
 
+        # Column background: same pale color for every column whose course
+        # shares a first control (helps spot start-order conflicts at a
+        # glance). Class background: one distinct, non-dark color per class,
+        # identical everywhere that class appears in the grid.
+        first_controls = sorted({col.first_control or "—" for col in grid.columns})
+        group_color = dict(
+            zip(first_controls, self._column_group_palette(len(first_controls)))
+        )
+        column_bg = {
+            col.course_id: group_color[col.first_control or "—"] for col in grid.columns
+        }
+        class_names = sorted({rc.name for rc in self._competition.classes.values()})
+        class_bg = dict(zip(class_names, self._class_color_palette(len(class_names))))
+
         readonly = Qt.ItemIsSelectable | Qt.ItemIsEnabled
         event_date = self._competition.event_date
         for row, minute in enumerate(grid.minutes):
@@ -1691,10 +1722,21 @@ class MainWindow(QMainWindow):
                 item = QTableWidgetItem(text)
                 item.setFlags(readonly)
                 item.setTextAlignment(Qt.AlignCenter)
+                # A cell can rarely hold "H21, D21" if two classes land on
+                # the same minute+control; color by the first name listed.
+                first_class = text.split(", ")[0] if text else None
+                item.setBackground(
+                    QBrush(class_bg.get(first_class, column_bg[col.course_id]))
+                )
                 table.setItem(row, col_idx, item)
 
         table.resizeColumnsToContents()
-        table.horizontalHeader().setStretchLastSection(True)
+        if grid.columns:
+            course_width = max(
+                table.columnWidth(i) for i in range(2, table.columnCount())
+            )
+            for i in range(2, table.columnCount()):
+                table.setColumnWidth(i, course_width)
         table.verticalHeader().setVisible(False)
 
     def _refresh_issues(self) -> None:
