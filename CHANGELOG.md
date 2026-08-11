@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.5
+
+- Sovellukselle oma ikoni (Windows-exe, ikkuna/tehtäväpalkki/Dock ajon aikana, ja macOS Finder/Dock `.app`-nippuna)
+- macOS-paketointi tuottaa nyt allekirjoitetun `StartPlanner.app`-nipun; GitHub-julkaisut jakavat jatkossa tämän aiemman kansio+launch-skripti-yhdistelmän sijaan
+- Lisätty anonymisoitu `samples/sample-medium-large/` -esimerkkiaineisto
+
 ## 0.9.4
 
 - Aloitus-välilehdelle uusi "Lataa jälki-ilmoittautuneet…" -painike, "Lataa ilmoittautumiset…" -painikkeen rinnalle

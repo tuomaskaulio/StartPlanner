@@ -28,23 +28,17 @@ Valitse oma prosessorisi mukaan tuleva paketti.
 Koska sovellus ei ole allekirjoitettu Apple Developer -sertifikaatilla, macOS saattaa estää
 sen käynnistyksen ("developer cannot be verified"). Tämän voi ohittaa kahdella tavalla:
 
-**Vaihtoehto 1: Käynnistä launcher-skriptillä (suositeltu)**
+**Vaihtoehto 1: Avaa oikealla hiiren painikkeella (suositeltu)**
 
-Pura zip-arkisto ja käynnistä sovellus `launch_macos.sh`-skriptillä:
-
-```bash
-cd StartPlanner
-./launch_macos.sh
-```
-
-Skripti poistaa automaattisesti macOS:n latausattribuutin (quarantine), joka estää
-allekirjoittamattomien binäärien käynnistyksen.
+Pura zip-arkisto, oikeaklikkaa (tai ctrl-klikkaa) `StartPlanner.app` ja valitse **Avaa** —
+vahvista vielä kerran avautuvasta dialogista. Tämän jälkeen sovellus käynnistyy jatkossa
+normaalisti kaksoisklikkaamalla.
 
 **Vaihtoehto 2: Poista quarantine manuaalisesti**
 
 ```bash
-xattr -rd com.apple.quarantine StartPlanner/
-./StartPlanner/StartPlanner
+xattr -rd com.apple.quarantine StartPlanner.app
+open StartPlanner.app
 ```
 
 Paikallinen PyInstaller-build: ks. [README](../README.md#asennuspaketit).

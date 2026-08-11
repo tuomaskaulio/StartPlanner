@@ -1,9 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
 """PyInstaller spec for StartPlanner (one-folder)."""
 
+import sys
+
 from PyInstaller.utils.hooks import collect_all
 
-datas = []
+datas = [("../src/startplanner/resources/icon.png", "startplanner/resources")]
 binaries = []
 hiddenimports = ["fpdf", "openpyxl", "lxml"]
 
@@ -43,6 +45,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity="-",
     entitlements_file=None,
+    icon="icon.ico" if sys.platform == "win32" else None,
 )
 coll = COLLECT(
     exe,
@@ -53,3 +56,11 @@ coll = COLLECT(
     upx_exclude=[],
     name="StartPlanner",
 )
+
+if sys.platform == "darwin":
+    app = BUNDLE(
+        coll,
+        name="StartPlanner.app",
+        icon="icon.icns",
+        bundle_identifier="fi.startplanner.app",
+    )

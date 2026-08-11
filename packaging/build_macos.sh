@@ -24,3 +24,14 @@ xattr -rd com.apple.quarantine "$ROOT/dist/StartPlanner/" 2>/dev/null || true
 echo "Built: $ROOT/dist/StartPlanner/"
 echo "Launch with: ./dist/StartPlanner/launch_macos.sh"
 echo "Note: Gatekeeper may block unsigned apps; allow in System Settings if needed."
+
+# The spec also produces a StartPlanner.app bundle (proper Finder/Dock icon).
+# Same stale-signature issue applies, plus the bundled Python.framework
+# binary (no file extension, so it's not caught by the *.so/*.dylib find above).
+if [ -d "$ROOT/dist/StartPlanner.app" ]; then
+  find "$ROOT/dist/StartPlanner.app" \( -name "*.so" -o -name "*.dylib" \) -exec codesign --remove-signature {} \; 2>/dev/null || true
+  find "$ROOT/dist/StartPlanner.app/Contents/Frameworks" -type f ! -name "*.*" -exec sh -c 'file "$1" | grep -q "Mach-O" && codesign --remove-signature "$1"' _ {} \; 2>/dev/null || true
+  codesign --force --deep --sign - "$ROOT/dist/StartPlanner.app" 2>/dev/null || true
+  xattr -rd com.apple.quarantine "$ROOT/dist/StartPlanner.app" 2>/dev/null || true
+  echo "Built: $ROOT/dist/StartPlanner.app"
+fi

@@ -41,7 +41,7 @@ Katso [docs/user-guide.md](docs/user-guide.md).
 8. Vie Excel / CSV / PDF
 9. Tallenna `.spc`
 
-Esimerkkiaineistot: `samples/sample-small/` ja `samples/sample-medium/`.
+Esimerkkiaineistot: `samples/sample-small/`, `samples/sample-medium/` ja `samples/sample-medium-large/`.
 
 ## Asennuspaketit
 
@@ -55,7 +55,7 @@ pip install -e ".[packaging]"
 ./packaging/build_windows.ps1
 ```
 
-Tuloste: `dist/StartPlanner/`. macOS voi varoittaa allekirjoittamattomasta sovelluksesta (Gatekeeper) — salli järjestelmäasetuksista tarvittaessa. GitHub Releases -paketeissa macOS on saatavilla sekä Apple Silicon (ARM) että Intel (x86-64) -arkkitehtuureille.
+Tuloste: `dist/StartPlanner/` (Windows) ja `dist/StartPlanner.app` (macOS, sis. Dock/Finder-ikonin). macOS voi varoittaa allekirjoittamattomasta sovelluksesta (Gatekeeper) — salli järjestelmäasetuksista tarvittaessa. GitHub Releases -paketeissa macOS on saatavilla sekä Apple Silicon (ARM) että Intel (x86-64) -arkkitehtuureille.
 
 
 ## Testit
@@ -66,4 +66,4 @@ pytest
 
 ## Versio
 
-Nykyinen versio: **0.9.4**. Versiohistoria ja muutokset: [CHANGELOG.md](CHANGELOG.md).
+Nykyinen versio: **0.9.5**. Versiohistoria ja muutokset: [CHANGELOG.md](CHANGELOG.md).
