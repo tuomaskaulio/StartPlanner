@@ -17,6 +17,7 @@ from startplanner.services.class_service import ClassService
 from startplanner.services.import_service import ImportService
 from startplanner.services.scheduler_service import SchedulerService
 from startplanner.services.validation_service import ValidationService
+from startplanner.validation.issues import Severity
 
 ROOT = Path(__file__).resolve().parents[1]
 SAMPLE_MEDIUM = ROOT / "samples" / "sample-medium"
@@ -266,12 +267,13 @@ def test_overflow_window_rebalances_deterministically():
     assert empty <= 2
 
 
-def test_clearing_competitors_drops_stale_lock_and_avoids_next_day():
-    """A class locked at a late, now-stale anchor time (e.g. it used to be a
-    small filler class squeezed in late in the day) must not balloon into
-    the next day once its roster is wiped and re-imported with far more
-    entries. Clearing competitors must drop the stale lock so the class is
-    freshly (and sensibly) placed again."""
+def test_clearing_competitors_preserves_lock_and_next_day_is_flagged():
+    """A class locked at a late anchor time keeps its lock across 'poista
+    kaikki kilpailijat' + a much larger re-imported roster — locks are no
+    longer dropped defensively. If the resulting schedule pushes a later
+    class past midnight, that's surfaced via the plan.next_day validation
+    warning (and the "(+1 pv)" display marker) instead of being prevented
+    by silently unlocking the class."""
     c = Competition(name="StaleLock", event_date=date(2026, 8, 6))
     c.ensure_default_start_location()
     c.add_course(Course(id="crs", name="Rata", controls=["31", "32"]))
@@ -314,7 +316,7 @@ def test_clearing_competitors_drops_stale_lock_and_avoids_next_day():
     removed = c.clear_competitors()
     assert removed == 2
     stale_entry = c.plan_for(DEFAULT_START_LOCATION_ID).entry_for_class("class:a")
-    assert stale_entry.locked is False
+    assert stale_entry.locked is True
 
     # Re-import: class A turns out to have a much larger real roster.
     for i in range(300):
@@ -324,7 +326,13 @@ def test_clearing_competitors_drops_stale_lock_and_avoids_next_day():
     c.add_competitor(Competitor(id="b2:0", first_name="T", last_name="b2-0", class_id="class:b"))
 
     new_plan = SchedulerService().apply(c)
-    assert all(e.first_start_time.date() == c.event_date for e in new_plan.entries)
     entry_a = new_plan.entry_for_class("class:a")
-    assert entry_a.locked is False
-    assert entry_a.first_start_time == c.competition_start_datetime()
+    assert entry_a.locked is True
+    assert entry_a.first_start_time == stale_anchor
+
+    report = ValidationService().validate(
+        c, start_location_id=DEFAULT_START_LOCATION_ID, require_plan=True
+    )
+    next_day_issues = [i for i in report.issues if i.rule_id == "plan.next_day"]
+    assert next_day_issues
+    assert all(i.severity is Severity.WARNING for i in next_day_issues)

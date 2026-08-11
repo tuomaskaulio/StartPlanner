@@ -7,14 +7,13 @@ from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from uuid import uuid4
 
-from PySide6.QtCore import QDate, QDateTime, Qt, QTime
+from PySide6.QtCore import QDate, Qt, QTime
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QComboBox,
     QDateEdit,
-    QDateTimeEdit,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
@@ -140,10 +139,6 @@ class NewCompetitionDialog(QDialog):
         self._start.setTime(QTime(12, 0))
         layout.addRow("Kilpailun aloitusaika", self._start)
 
-        self._auto_build = QCheckBox("Luo lähtökaavio kun tiedot on tuotu")
-        self._auto_build.setChecked(True)
-        layout.addRow(self._auto_build)
-
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
@@ -176,10 +171,6 @@ class NewCompetitionDialog(QDialog):
         t = self._start.time()
         return time(t.hour(), t.minute())
 
-    @property
-    def auto_build(self) -> bool:
-        return self._auto_build.isChecked()
-
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
@@ -191,7 +182,6 @@ class MainWindow(QMainWindow):
         self._competition.ensure_default_start_location()
         self._active_location_id = next(iter(self._competition.start_locations))
         self._project_path: Path | None = None
-        self._auto_build_schedule: bool = False
         self._class_service = ClassService()
         self._competition_service = CompetitionService()
         self._import_service = ImportService()
@@ -293,6 +283,31 @@ class MainWindow(QMainWindow):
         right_layout = QVBoxLayout(right)
         right_layout.addWidget(top)
         self._tabs = QTabWidget()
+
+        self._start_page = QWidget()
+        start_layout = QVBoxLayout(self._start_page)
+        start_layout.addWidget(
+            QLabel(
+                "Tuo ensin ratatiedot ja ilmoittautumiset. Kun molemmat on "
+                "tuotu, muut välilehdet avautuvat ja lähtökaavion voi "
+                "toteuttaa."
+            )
+        )
+        self._start_course_status = QLabel()
+        start_layout.addWidget(self._start_course_status)
+        start_course_btn = QPushButton("Lataa ratatiedot…")
+        start_course_btn.clicked.connect(self._import_coursedata)
+        start_layout.addWidget(start_course_btn)
+        self._start_entries_status = QLabel()
+        start_layout.addWidget(self._start_entries_status)
+        start_entries_btn = QPushButton("Lataa ilmoittautumiset…")
+        start_entries_btn.clicked.connect(self._import_entries)
+        start_layout.addWidget(start_entries_btn)
+        self._start_build_btn = QPushButton("Toteuta lähtökaavio")
+        self._start_build_btn.clicked.connect(self._build_schedule)
+        start_layout.addWidget(self._start_build_btn)
+        start_layout.addStretch()
+
         self._locations_page = QWidget()
         locations_layout = QVBoxLayout(self._locations_page)
         self._locations_table = QTableWidget()
@@ -303,6 +318,10 @@ class MainWindow(QMainWindow):
         self._locations_table.itemChanged.connect(self._on_location_name_changed)
 
         self._classes_table = QTableWidget()
+        self._classes_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self._classes_table.customContextMenuRequested.connect(
+            self._classes_context_menu
+        )
         self._class_order_page = QWidget()
         class_order_layout = QVBoxLayout(self._class_order_page)
         class_order_layout.addWidget(
@@ -343,10 +362,24 @@ class MainWindow(QMainWindow):
         )
         course_order_layout.addWidget(self._course_order_list)
 
+        self._courses_page = QWidget()
+        courses_layout = QVBoxLayout(self._courses_page)
         self._courses_table = QTableWidget()
+        self._courses_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self._courses_table.customContextMenuRequested.connect(
+            self._courses_context_menu
+        )
+        courses_layout.addWidget(self._courses_table)
+        clear_courses_btn = QPushButton("Poista kaikki radat ja sarjat")
+        clear_courses_btn.clicked.connect(self._clear_courses_and_classes)
+        courses_layout.addWidget(clear_courses_btn)
         self._competitors_page = QWidget()
         competitors_layout = QVBoxLayout(self._competitors_page)
         self._competitors_table = QTableWidget()
+        self._competitors_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self._competitors_table.customContextMenuRequested.connect(
+            self._competitors_context_menu
+        )
         competitors_layout.addWidget(self._competitors_table)
         clear_competitors_btn = QPushButton("Poista kaikki kilpailijat")
         clear_competitors_btn.clicked.connect(self._clear_competitors)
@@ -370,11 +403,12 @@ class MainWindow(QMainWindow):
         self._timeline_table = QTableWidget()
         self._grid_table = QTableWidget()
         self._issues_table = QTableWidget()
+        self._tabs.addTab(self._start_page, "Aloitus")
         self._tabs.addTab(self._locations_page, "Lähdöt")
         self._tabs.addTab(self._classes_table, "Sarjat")
         self._tabs.addTab(self._class_order_page, "Sarjajärjestys")
         self._tabs.addTab(self._course_order_page, "Ratajärjestys")
-        self._tabs.addTab(self._courses_table, "Radat")
+        self._tabs.addTab(self._courses_page, "Radat")
         self._tabs.addTab(self._competitors_page, "Kilpailijat")
         self._tabs.addTab(self._plan_page, "Lähtökaavio")
         self._tabs.addTab(self._timeline_table, "Aikajana")
@@ -411,54 +445,9 @@ class MainWindow(QMainWindow):
         )
         self._active_location_id = next(iter(self._competition.start_locations))
         self._project_path = None
-        self._auto_build_schedule = dlg.auto_build
         self._reset_all_history()
         self._refresh_all()
-        self._prompt_course_data()
-
-    def _prompt_course_data(self) -> None:
-        """After creating a new competition, prompt to import course data."""
-        reply = QMessageBox.question(
-            self,
-            "Tuonti",
-            "Uusi kilpailu luotu.\n\nHalutaanko tuoda ratatiedot (IOF CourseData XML) nyt?",
-            QMessageBox.Yes | QMessageBox.No,
-        )
-        if reply == QMessageBox.Yes:
-            self._import_coursedata()
-            self._prompt_entries()
-
-    def _prompt_entries(self) -> None:
-        """After importing course data, prompt to import entries."""
-        if not self._competition.courses or not self._competition.classes:
-            return
-        reply = QMessageBox.question(
-            self,
-            "Tuonti",
-            "Halutaanko tuoda ilmoittautumiset (IRMA Pirilä CSV) nyt?",
-            QMessageBox.Yes | QMessageBox.No,
-        )
-        if reply == QMessageBox.Yes:
-            self._import_entries()
-
-    def _maybe_auto_build_schedule(self) -> None:
-        """If auto-build is enabled and all prerequisites are met, prompt to build schedule."""
-        if not self._auto_build_schedule:
-            return
-        comp = self._competition
-        if not comp.courses or not comp.classes or not comp.competitors:
-            return
-        # Check that all classes have a course assigned
-        if any(not rc.course_id for rc in comp.classes.values()):
-            return
-        reply = QMessageBox.question(
-            self,
-            "Muodosta lähtökaavio",
-            "Kaikki tiedot on tuotu. Muodostetaanko lähtökaavio nyt?",
-            QMessageBox.Yes | QMessageBox.No,
-        )
-        if reply == QMessageBox.Yes:
-            self._build_schedule()
+        self._tabs.setCurrentWidget(self._start_page)
 
     def _open_project(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Avaa projekti", "", "StartPlanner (*.spc)")
@@ -471,8 +460,15 @@ class MainWindow(QMainWindow):
             self._project_path = Path(path)
             self._reset_all_history()
             self._refresh_all()
+            self._land_after_load()
         except StartPlannerError as exc:
             QMessageBox.critical(self, "Virhe", str(exc))
+
+    def _land_after_load(self) -> None:
+        """After loading a competition that may already be fully set up,
+        jump past the Aloitus gate if there's nothing left to do there."""
+        if self._setup_complete() and self._tabs.currentWidget() is self._start_page:
+            self._tabs.setCurrentIndex(1)
 
     def _save_project(self) -> None:
         if self._project_path is None:
@@ -517,7 +513,6 @@ class MainWindow(QMainWindow):
             self._active_location_id = next(iter(self._competition.start_locations))
             self._reset_all_history()
             self._refresh_all()
-            self._maybe_auto_build_schedule()
             self._status.showMessage(f"Ratatiedot tuotu: {len(paths)} tiedostoa", 4000)
         except StartPlannerError as exc:
             QMessageBox.critical(self, "Tuontivirhe", str(exc))
@@ -542,7 +537,6 @@ class MainWindow(QMainWindow):
             before = len(self._competition.competitors)
             n = self._import_service.import_entries(self._competition, path)
             self._refresh_all()
-            self._maybe_auto_build_schedule()
             self._status.showMessage(f"Tuotu {n} kilpailijaa", 4000)
             if had_plan and len(self._competition.competitors) > before:
                 reply = QMessageBox.question(
@@ -710,35 +704,38 @@ class MainWindow(QMainWindow):
         self._set_class_first_time(class_id, new_time, "Siirrä sarja")
 
     def _prompt_new_start_time(self, current: datetime) -> datetime | None:
-        """Ask for a new start date+time, defaulting to `current`.
+        """Ask for a new start time (HH:MM) plus an optional next-day flag.
 
-        Uses a date+time picker (not just HH:MM) so a class can be moved
-        across midnight — the schedule already supports start times on the
-        day after the competition date ("+1 pv").
+        The resulting date is always the competition date (or today, if
+        unset) — crossing midnight is rare, so it's an explicit checkbox
+        rather than a full calendar date picker.
         """
+        event_date = self._competition.event_date or date.today()
         dlg = QDialog(self)
         dlg.setWindowTitle("Siirrä sarja")
         layout = QFormLayout(dlg)
-        picker = QDateTimeEdit()
-        picker.setDisplayFormat("dd.MM.yyyy HH:mm")
-        picker.setCalendarPopup(True)
-        picker.setDateTime(
-            QDateTime(
-                QDate(current.year, current.month, current.day),
-                QTime(current.hour, current.minute),
-            )
-        )
-        layout.addRow("Uusi 1. lähtöaika", picker)
+        time_edit = QTimeEdit()
+        time_edit.setDisplayFormat("HH:mm")
+        time_edit.setTime(QTime(current.hour, current.minute))
+        layout.addRow("Uusi 1. lähtöaika", time_edit)
+        next_day = QCheckBox("Siirrä seuraavalle vuorokaudelle (+1 pv)")
+        next_day.setChecked(current.date() == event_date + timedelta(days=1))
+        layout.addRow(next_day)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(dlg.accept)
         buttons.rejected.connect(dlg.reject)
         layout.addRow(buttons)
         if dlg.exec() != QDialog.Accepted:
             return None
-        qdt = picker.dateTime()
-        qd = qdt.date()
-        qt = qdt.time()
-        return datetime(qd.year(), qd.month(), qd.day(), qt.hour(), qt.minute())
+        t = time_edit.time()
+        return self._resolve_move_datetime(
+            time(t.hour(), t.minute()), next_day.isChecked(), event_date
+        )
+
+    @staticmethod
+    def _resolve_move_datetime(new_time: time, next_day: bool, event_date: date) -> datetime:
+        day = event_date + timedelta(days=1) if next_day else event_date
+        return datetime.combine(day, new_time)
 
     def _toggle_lock_selected(self) -> None:
         class_id = self._selected_plan_class_id()
@@ -870,11 +867,12 @@ class MainWindow(QMainWindow):
 
     def _on_tree_clicked(self, item: QTreeWidgetItem, _col: int) -> None:
         mapping = {
+            "Aloitus": self._start_page,
             "Lähdöt": self._locations_page,
             "Sarjat": self._classes_table,
             "Sarjajärjestys": self._class_order_page,
             "Ratajärjestys": self._course_order_page,
-            "Radat": self._courses_table,
+            "Radat": self._courses_page,
             "Kilpailijat": self._competitors_page,
             "Lähtökaavio": self._plan_page,
             "Aikajana": self._timeline_table,
@@ -900,38 +898,52 @@ class MainWindow(QMainWindow):
             self._active_location_id = self._location_combo.currentData()
         self._location_combo.blockSignals(False)
 
+    def _setup_complete(self) -> bool:
+        c = self._competition
+        return bool(c.courses) and bool(c.classes) and bool(c.competitors)
+
+    def _refresh_start_page(self, ready: bool) -> None:
+        c = self._competition
+        if c.courses or c.classes:
+            self._start_course_status.setText(
+                f"✓ Ratatiedot ladattu ({len(c.courses)} rataa, {len(c.classes)} sarjaa)"
+            )
+        else:
+            self._start_course_status.setText("Ratatietoja ei ole vielä ladattu.")
+        if c.competitors:
+            self._start_entries_status.setText(
+                f"✓ Ilmoittautumiset ladattu ({len(c.competitors)} kilpailijaa)"
+            )
+        else:
+            self._start_entries_status.setText("Ilmoittautumisia ei ole vielä ladattu.")
+        self._start_build_btn.setVisible(ready)
+
+    def _apply_tab_gating(self, ready: bool) -> None:
+        for i in range(self._tabs.count()):
+            if self._tabs.widget(i) is self._start_page:
+                continue
+            self._tabs.setTabVisible(i, ready)
+        if not ready and self._tabs.currentWidget() is not self._start_page:
+            self._tabs.setCurrentWidget(self._start_page)
+
     def _refresh_all(self) -> None:
         self._competition.ensure_default_start_location()
         if self._active_location_id not in self._competition.start_locations:
             self._active_location_id = next(iter(self._competition.start_locations))
+        ready = self._setup_complete()
         self._refresh_location_combo()
-        self._refresh_tree()
+        self._refresh_start_page(ready)
+        self._refresh_tree(ready)
         self._refresh_locations_table()
         self._refresh_classes_table()
         self._refresh_class_order_list()
         self._refresh_course_order_combo()
         self._refresh_courses_table()
-        self._fill_table(
-            self._competitors_table,
-            ["Nimi", "Seura", "Sarja", "Emit"],
-            [
-                [
-                    comp.full_name,
-                    comp.club,
-                    self._competition.classes[comp.class_id].name
-                    if comp.class_id in self._competition.classes
-                    else "—",
-                    comp.emit or "",
-                ]
-                for comp in sorted(
-                    self._competition.competitors.values(),
-                    key=lambda c: (c.last_name, c.first_name),
-                )
-            ],
-        )
+        self._refresh_competitors_table()
         self._refresh_plan_and_status()
         self._refresh_issues()
         self._update_history_actions()
+        self._apply_tab_gating(ready)
 
     def _refresh_locations_table(self) -> None:
         headers = ["Nimi", "1. lähtö", "Sarjoja"]
@@ -1089,12 +1101,11 @@ class MainWindow(QMainWindow):
             )
             label = f"{course.name} ({n})" if n else course.name
             self._course_order_combo.addItem(label, course.id)
-        if current is not None:
-            idx = self._course_order_combo.findData(current)
-            if idx >= 0:
-                self._course_order_combo.setCurrentIndex(idx)
-        elif self._course_order_combo.count():
-            self._course_order_combo.setCurrentIndex(0)
+        idx = self._course_order_combo.findData(current) if current is not None else -1
+        if idx < 0 and self._course_order_combo.count():
+            idx = 0
+        if idx >= 0:
+            self._course_order_combo.setCurrentIndex(idx)
         self._course_order_combo.blockSignals(False)
         self._refresh_course_order_list()
 
@@ -1311,6 +1322,47 @@ class MainWindow(QMainWindow):
         self._refresh_issues()
         self._refresh_plan_and_status()
 
+    def _selected_classes_table_class_id(self) -> str | None:
+        row = self._classes_table.currentRow()
+        if row < 0:
+            return None
+        item = self._classes_table.item(row, 1)  # column 0 is a QSpinBox widget
+        return item.data(Qt.UserRole) if item else None
+
+    def _classes_context_menu(self, pos) -> None:
+        from PySide6.QtWidgets import QMenu
+
+        menu = QMenu(self)
+        menu.addAction("Poista sarja…", self._delete_selected_class)
+        menu.exec(self._classes_table.viewport().mapToGlobal(pos))
+
+    def _delete_selected_class(self) -> None:
+        class_id = self._selected_classes_table_class_id()
+        if not class_id:
+            QMessageBox.information(self, "Poista sarja", "Valitse sarja.")
+            return
+        rc = self._competition.classes.get(class_id)
+        if not rc:
+            return
+        n = self._competition.competitor_count(class_id)
+        reply = QMessageBox.question(
+            self,
+            "Poista sarja",
+            f"Poistetaanko sarja {rc.name}?\n\n"
+            f"Samalla poistuu {n} kilpailijaa ja sarjan lähtökaavion rivit.\n"
+            "Tätä ei voi perua.",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+        try:
+            self._class_service.remove_class(self._competition, class_id)
+        except StartPlannerError as exc:
+            QMessageBox.warning(self, "Poista sarja", str(exc))
+            return
+        self._refresh_all()
+        self._status.showMessage(f"Sarja poistettu: {rc.name}", 4000)
+
     def _refresh_courses_table(self) -> None:
         headers = ["Rata", "Pituus (m)", "Nousu", "1. rasti", "Rasteja", "Sarjaväli (min)"]
         courses = sorted(self._competition.courses.values(), key=lambda c: c.name)
@@ -1362,6 +1414,142 @@ class MainWindow(QMainWindow):
             self._refresh_courses_table()
             return
         self._refresh_plan_and_status()
+
+    def _selected_course_id(self) -> str | None:
+        row = self._courses_table.currentRow()
+        if row < 0:
+            return None
+        item = self._courses_table.item(row, 0)
+        return item.data(Qt.UserRole) if item else None
+
+    def _courses_context_menu(self, pos) -> None:
+        from PySide6.QtWidgets import QMenu
+
+        menu = QMenu(self)
+        menu.addAction("Poista rata…", self._delete_selected_course)
+        menu.exec(self._courses_table.viewport().mapToGlobal(pos))
+
+    def _delete_selected_course(self) -> None:
+        course_id = self._selected_course_id()
+        if not course_id:
+            QMessageBox.information(self, "Poista rata", "Valitse rata.")
+            return
+        course = self._competition.courses.get(course_id)
+        if not course:
+            return
+        classes = [
+            rc for rc in self._competition.classes.values() if rc.course_id == course_id
+        ]
+        n_competitors = sum(self._competition.competitor_count(rc.id) for rc in classes)
+        reply = QMessageBox.question(
+            self,
+            "Poista rata",
+            f"Poistetaanko rata {course.name}?\n\n"
+            f"Samalla poistuu {len(classes)} sarjaa ja {n_competitors} kilpailijaa "
+            "sekä niiden lähtökaavion rivit.\nTätä ei voi perua.",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+        try:
+            self._class_service.remove_course(self._competition, course_id)
+        except StartPlannerError as exc:
+            QMessageBox.warning(self, "Poista rata", str(exc))
+            return
+        self._refresh_all()
+        self._status.showMessage(f"Rata poistettu: {course.name}", 4000)
+
+    def _clear_courses_and_classes(self) -> None:
+        n_courses = len(self._competition.courses)
+        n_classes = len(self._competition.classes)
+        if n_courses == 0 and n_classes == 0:
+            QMessageBox.information(
+                self, "Poista radat ja sarjat", "Radat ja sarjat ovat jo tyhjät."
+            )
+            return
+        n_competitors = len(self._competition.competitors)
+        reply = QMessageBox.question(
+            self,
+            "Poista kaikki radat ja sarjat",
+            f"Poistetaanko kaikki {n_courses} rataa ja {n_classes} sarjaa?\n\n"
+            f"Samalla poistuu myös kaikki {n_competitors} kilpailijaa.\n"
+            "Tätä ei voi perua.",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+        removed_courses, removed_classes = self._class_service.clear_courses_and_classes(
+            self._competition
+        )
+        self._refresh_all()
+        self._status.showMessage(
+            f"Poistettu {removed_courses} rataa ja {removed_classes} sarjaa", 4000
+        )
+
+    def _refresh_competitors_table(self) -> None:
+        headers = ["Nimi", "Seura", "Sarja", "Emit"]
+        competitors = sorted(
+            self._competition.competitors.values(),
+            key=lambda c: (c.last_name, c.first_name),
+        )
+        readonly = Qt.ItemIsSelectable | Qt.ItemIsEnabled
+        self._competitors_table.clear()
+        self._competitors_table.setColumnCount(len(headers))
+        self._competitors_table.setHorizontalHeaderLabels(headers)
+        self._competitors_table.setRowCount(len(competitors))
+        for row, comp in enumerate(competitors):
+            values = [
+                comp.full_name,
+                comp.club,
+                self._competition.classes[comp.class_id].name
+                if comp.class_id in self._competition.classes
+                else "—",
+                comp.emit or "",
+            ]
+            for col, value in enumerate(values):
+                item = QTableWidgetItem(value)
+                item.setFlags(readonly)
+                item.setData(Qt.UserRole, comp.id)
+                self._competitors_table.setItem(row, col, item)
+        self._competitors_table.resizeColumnsToContents()
+
+    def _selected_competitor_id(self) -> str | None:
+        row = self._competitors_table.currentRow()
+        if row < 0:
+            return None
+        item = self._competitors_table.item(row, 0)
+        return item.data(Qt.UserRole) if item else None
+
+    def _competitors_context_menu(self, pos) -> None:
+        from PySide6.QtWidgets import QMenu
+
+        menu = QMenu(self)
+        menu.addAction("Poista valittu", self._delete_selected_competitor)
+        menu.exec(self._competitors_table.viewport().mapToGlobal(pos))
+
+    def _delete_selected_competitor(self) -> None:
+        competitor_id = self._selected_competitor_id()
+        if not competitor_id:
+            QMessageBox.information(self, "Poista", "Valitse kilpailija.")
+            return
+        comp = self._competition.competitors.get(competitor_id)
+        if not comp:
+            return
+        reply = QMessageBox.question(
+            self,
+            "Poista kilpailija",
+            f"Poistetaanko {comp.full_name}?\n\nTätä ei voi perua.",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+        try:
+            self._competition_service.remove_competitor(self._competition, competitor_id)
+        except StartPlannerError as exc:
+            QMessageBox.warning(self, "Poista", str(exc))
+            return
+        self._refresh_all()
+        self._status.showMessage(f"Poistettu: {comp.full_name}", 4000)
 
     def _refresh_plan_and_status(self) -> None:
         plan = self._competition.plan_for(self._active_location_id)
@@ -1501,21 +1689,24 @@ class MainWindow(QMainWindow):
             ],
         )
 
-    def _refresh_tree(self) -> None:
+    def _refresh_tree(self, ready: bool = True) -> None:
         self._tree.clear()
         root = QTreeWidgetItem([self._competition.name or "Kilpailu"])
-        for label in (
-            "Lähdöt",
-            "Sarjat",
-            "Sarjajärjestys",
-            "Ratajärjestys",
-            "Radat",
-            "Kilpailijat",
-            "Lähtökaavio",
-            "Aikajana",
-            "Ruudukko",
-            "Huomiot",
-        ):
+        labels = ["Aloitus"]
+        if ready:
+            labels += [
+                "Lähdöt",
+                "Sarjat",
+                "Sarjajärjestys",
+                "Ratajärjestys",
+                "Radat",
+                "Kilpailijat",
+                "Lähtökaavio",
+                "Aikajana",
+                "Ruudukko",
+                "Huomiot",
+            ]
+        for label in labels:
             root.addChild(QTreeWidgetItem([label]))
         self._tree.addTopLevelItem(root)
         self._tree.expandAll()

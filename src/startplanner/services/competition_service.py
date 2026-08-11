@@ -6,6 +6,7 @@ from datetime import date
 from pathlib import Path
 
 from startplanner.domain import Competition, Settings
+from startplanner.domain.errors import StartPlannerError
 from startplanner.persistence.spc_store import SpcStore
 
 
@@ -39,3 +40,7 @@ class CompetitionService:
         Returns the number of competitors removed.
         """
         return competition.clear_competitors()
+
+    def remove_competitor(self, competition: Competition, competitor_id: str) -> None:
+        if not competition.remove_competitor(competitor_id):
+            raise StartPlannerError(f"Tuntematon kilpailija: {competitor_id}")
