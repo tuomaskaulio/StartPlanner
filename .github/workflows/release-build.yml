@@ -68,21 +68,17 @@ jobs:
 
       - name: Re-sign bundled binaries
         run: |
-          find dist/StartPlanner \( -name "*.so" -o -name "*.dylib" \) -exec codesign --remove-signature {} \; 2>/dev/null || true
-          codesign --force --deep --sign - dist/StartPlanner/StartPlanner 2>/dev/null || true
-
-      - name: Copy launcher script
-        run: |
-          cp packaging/launch_macos.sh dist/StartPlanner/launch_macos.sh
-          chmod +x dist/StartPlanner/launch_macos.sh
+          find dist/StartPlanner.app \( -name "*.so" -o -name "*.dylib" \) -exec codesign --remove-signature {} \; 2>/dev/null || true
+          find dist/StartPlanner.app/Contents/Frameworks -type f ! -name "*.*" -exec sh -c 'file "$1" | grep -q "Mach-O" && codesign --remove-signature "$1"' _ {} \; 2>/dev/null || true
+          codesign --force --deep --sign - dist/StartPlanner.app 2>/dev/null || true
 
       - name: Remove quarantine attributes
-        run: xattr -rd com.apple.quarantine dist/StartPlanner/
+        run: xattr -rd com.apple.quarantine dist/StartPlanner.app
 
       - name: Archive build
         run: |
           cd dist
-          zip -r StartPlanner-macOS-${{ matrix.suffix }}.zip StartPlanner/
+          zip -r StartPlanner-macOS-${{ matrix.suffix }}.zip StartPlanner.app/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

@@ -28,23 +28,17 @@ Valitse oma prosessorisi mukaan tuleva paketti.
 Koska sovellus ei ole allekirjoitettu Apple Developer -sertifikaatilla, macOS saattaa estää
 sen käynnistyksen ("developer cannot be verified"). Tämän voi ohittaa kahdella tavalla:
 
-**Vaihtoehto 1: Käynnistä launcher-skriptillä (suositeltu)**
+**Vaihtoehto 1: Avaa oikealla hiiren painikkeella (suositeltu)**
 
-Pura zip-arkisto ja käynnistä sovellus `launch_macos.sh`-skriptillä:
-
-```bash
-cd StartPlanner
-./launch_macos.sh
-```
-
-Skripti poistaa automaattisesti macOS:n latausattribuutin (quarantine), joka estää
-allekirjoittamattomien binäärien käynnistyksen.
+Pura zip-arkisto, oikeaklikkaa (tai ctrl-klikkaa) `StartPlanner.app` ja valitse **Avaa** —
+vahvista vielä kerran avautuvasta dialogista. Tämän jälkeen sovellus käynnistyy jatkossa
+normaalisti kaksoisklikkaamalla.
 
 **Vaihtoehto 2: Poista quarantine manuaalisesti**
 
 ```bash
-xattr -rd com.apple.quarantine StartPlanner/
-./StartPlanner/StartPlanner
+xattr -rd com.apple.quarantine StartPlanner.app
+open StartPlanner.app
 ```
 
 Paikallinen PyInstaller-build: ks. [README](../README.md#asennuspaketit).
@@ -52,16 +46,20 @@ Paikallinen PyInstaller-build: ks. [README](../README.md#asennuspaketit).
 
 ## Tyypillinen työnkulku
 
-1. **Uusi kilpailu** – dialogi kysyy kilpailun tiedot (nimi, aloitusaika,
-   lähtöväli, sarjaväli) kerralla. Sovellus avautuu **Aloitus**-välilehdelle.
+1. **Uusi kilpailu** (Tiedosto-valikko) – dialogi kysyy kilpailun tiedot
+   (nimi, aloitusaika, lähtöväli, sarjaväli) kerralla. Sovellus avautuu
+   **Aloitus**-välilehdelle. Ennen kuin kilpailu on luotu tai avattu
+   (**Avaa .spc…**), Aloitus-sivun tuontipainikkeet sekä **Kilpailu**- ja
+   **Lähtökaavio**-valikot pysyvät ei-käytettävissä.
 2. **Aloitus** – ohjaa perustamisen kahdella painikkeella:
    - **Lataa ratatiedot…** (Condes XML)
    - **Lataa ilmoittautumiset…** (IRMA Pirilä CSV)
-   Muut välilehdet (Sarjat, Lähdöt, Lähtökaavio, jne.) pysyvät piilossa
-   kunnes molemmat on ladattu — sama sääntö koskee myös vanhan `.spc`-projektin
-   avaamista, jos siitä puuttuu vielä ratatiedot tai ilmoittautumiset.
-   Kun molemmat on ladattu, Aloitukseen ilmestyy kolmas painike, **Toteuta
-   lähtökaavio**, ja kaikki muut välilehdet avautuvat.
+   Muut välilehdet (Sarjat, Lähdöt, Lähtökaavio, jne.) sekä yläpalkin
+   aktiivinen lähtö -valikko pysyvät piilossa kunnes molemmat on ladattu —
+   sama sääntö koskee myös vanhan `.spc`-projektin avaamista, jos siitä
+   puuttuu vielä ratatiedot tai ilmoittautumiset. Kun molemmat on ladattu,
+   Aloitukseen ilmestyy kolmas painike, **Toteuta lähtökaavio**, ja kaikki
+   muut välilehdet avautuvat.
 3. **Sarjat** – kytke puuttuvat sarjat radoihin; säädä lähtö ja lähtöväli.
    Sarjan (ja sen kilpailijat) voi poistaa oikealla klikkauksella.
 4. **Sarjajärjestys** – raahaa sarjoja haluttuun järjestykseen (näkyy kaaviossa).

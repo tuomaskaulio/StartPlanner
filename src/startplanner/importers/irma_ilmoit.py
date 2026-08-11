@@ -39,7 +39,9 @@ class IrmaIlmoitImporter:
             return False
         return text.lstrip().startswith("= ILMOIT")
 
-    def read(self, path: str | Path) -> list[tuple[str, Competitor]]:
+    def read(
+        self, path: str | Path, *, late: bool = False
+    ) -> list[tuple[str, Competitor]]:
         """Return list of (class_name, competitor) without attaching to competition."""
         p = Path(path)
         try:
@@ -76,12 +78,15 @@ class IrmaIlmoitImporter:
                 club=club,
                 emit=emit_val,
                 birth_year=birth_year,
+                late=late,
             )
             rows.append((class_name, competitor))
         return rows
 
-    def apply_to(self, competition: Competition, path: str | Path) -> int:
-        rows = self.read(path)
+    def apply_to(
+        self, competition: Competition, path: str | Path, *, late: bool = False
+    ) -> int:
+        rows = self.read(path, late=late)
         count = 0
         for class_name, competitor in rows:
             rc = competition.get_class_by_name(class_name)

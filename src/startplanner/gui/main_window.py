@@ -182,6 +182,10 @@ class MainWindow(QMainWindow):
         self._competition.ensure_default_start_location()
         self._active_location_id = next(iter(self._competition.start_locations))
         self._project_path: Path | None = None
+        # True only once the user has explicitly created ("Uusi") or opened
+        # ("Avaa .spc…") a competition — the placeholder Competition above
+        # doesn't count, so import actions/menus stay locked until then.
+        self._has_competition: bool = False
         self._class_service = ClassService()
         self._competition_service = CompetitionService()
         self._import_service = ImportService()
@@ -227,45 +231,52 @@ class MainWindow(QMainWindow):
         file_menu.addAction("Tallenna", self._save_project)
         file_menu.addAction("Tallenna nimellä…", self._save_project_as)
         file_menu.addSeparator()
-        file_menu.addAction(
-            "Tuo ratatiedot (IOF CourseData 3.0, Condes)…",
-            self._import_coursedata,
-        )
-        file_menu.addAction(
-            "Tuo ilmoittautumiset (IRMA Pirilä)…",
-            self._import_entries,
-        )
-        file_menu.addAction(
-            "Tuo jälki-ilmoittautuneet (IRMA Pirilä)…",
-            self._import_late_entries,
-        )
-        file_menu.addSeparator()
         file_menu.addAction("Vie Excel…", self._export_excel)
         file_menu.addAction("Vie CSV…", self._export_csv)
         file_menu.addAction("Vie PDF…", self._export_pdf)
         file_menu.addAction("Vie ruudukko PDF…", self._export_grid_pdf)
+
+        self._competition_menu = menu.addMenu("Kilpailu")
+        self._competition_menu.addAction("Kilpailun asetukset…", self._edit_settings)
+        self._competition_menu.addSeparator()
+        self._competition_menu.addAction(
+            "Tuo ratatiedot (IOF CourseData 3.0, Condes)…",
+            self._import_coursedata,
+        )
+        self._competition_menu.addAction(
+            "Tuo ilmoittautumiset (IRMA Pirilä)…",
+            self._import_entries,
+        )
+        self._competition_menu.addAction(
+            "Tuo jälki-ilmoittautuneet (IRMA Pirilä)…",
+            self._import_late_entries,
+        )
 
         edit_menu = menu.addMenu("Muokkaa")
         self._undo_action = edit_menu.addAction("Kumoa", self._undo)
         self._undo_action.setShortcut("Ctrl+Z")
         self._redo_action = edit_menu.addAction("Tee uudelleen", self._redo)
         self._redo_action.setShortcut("Ctrl+Shift+Z")
-        edit_menu.addSeparator()
-        edit_menu.addAction("Kilpailun asetukset…", self._edit_settings)
 
-        schedule_menu = menu.addMenu("Lähtökaavio")
-        schedule_menu.addAction("Muodosta lähtökaavio (aktiivinen lähtö)", self._build_schedule)
-        schedule_menu.addAction("Päivitä lähtökaavio (aktiivinen lähtö)", self._update_schedule)
-        schedule_menu.addAction("Optimoi (aktiivinen lähtö)", self._optimize)
-        schedule_menu.addAction("Validoi", self._validate)
-        schedule_menu.addSeparator()
-        schedule_menu.addAction("Siirrä valittu sarja…", self._move_selected_class)
-        schedule_menu.addAction("Lukitse / avaa valittu sarja", self._toggle_lock_selected)
-        schedule_menu.addSeparator()
-        schedule_menu.addAction("Lisää lähtö…", self._add_start_location)
+        self._schedule_menu = menu.addMenu("Lähtökaavio")
+        self._schedule_menu.addAction(
+            "Muodosta lähtökaavio (aktiivinen lähtö)", self._build_schedule
+        )
+        self._schedule_menu.addAction(
+            "Päivitä lähtökaavio (aktiivinen lähtö)", self._update_schedule
+        )
+        self._schedule_menu.addAction("Optimoi (aktiivinen lähtö)", self._optimize)
+        self._schedule_menu.addAction("Validoi", self._validate)
+        self._schedule_menu.addSeparator()
+        self._schedule_menu.addAction("Siirrä valittu sarja…", self._move_selected_class)
+        self._schedule_menu.addAction(
+            "Lukitse / avaa valittu sarja", self._toggle_lock_selected
+        )
+        self._schedule_menu.addSeparator()
+        self._schedule_menu.addAction("Lisää lähtö…", self._add_start_location)
 
-        top = QWidget()
-        top_layout = QHBoxLayout(top)
+        self._top_bar = QWidget()
+        top_layout = QHBoxLayout(self._top_bar)
         top_layout.addWidget(QLabel("Aktiivinen lähtö:"))
         self._location_combo = QComboBox()
         self._location_combo.currentIndexChanged.connect(self._on_location_changed)
@@ -281,28 +292,34 @@ class MainWindow(QMainWindow):
 
         right = QWidget()
         right_layout = QVBoxLayout(right)
-        right_layout.addWidget(top)
+        right_layout.addWidget(self._top_bar)
         self._tabs = QTabWidget()
 
         self._start_page = QWidget()
         start_layout = QVBoxLayout(self._start_page)
         start_layout.addWidget(
             QLabel(
-                "Tuo ensin ratatiedot ja ilmoittautumiset. Kun molemmat on "
-                "tuotu, muut välilehdet avautuvat ja lähtökaavion voi "
-                "toteuttaa."
+                "Luo tai avaa kilpailu, tuo sitten ratatiedot ja "
+                "ilmoittautumiset. Kun molemmat on tuotu, muut välilehdet "
+                "avautuvat ja lähtökaavion voi toteuttaa."
             )
         )
+        self._start_new_competition_btn = QPushButton("Luo uusi kilpailu…")
+        self._start_new_competition_btn.clicked.connect(self._new_project)
+        start_layout.addWidget(self._start_new_competition_btn)
         self._start_course_status = QLabel()
         start_layout.addWidget(self._start_course_status)
-        start_course_btn = QPushButton("Lataa ratatiedot…")
-        start_course_btn.clicked.connect(self._import_coursedata)
-        start_layout.addWidget(start_course_btn)
+        self._start_course_btn = QPushButton("Lataa ratatiedot…")
+        self._start_course_btn.clicked.connect(self._import_coursedata)
+        start_layout.addWidget(self._start_course_btn)
         self._start_entries_status = QLabel()
         start_layout.addWidget(self._start_entries_status)
-        start_entries_btn = QPushButton("Lataa ilmoittautumiset…")
-        start_entries_btn.clicked.connect(self._import_entries)
-        start_layout.addWidget(start_entries_btn)
+        self._start_entries_btn = QPushButton("Lataa ilmoittautumiset…")
+        self._start_entries_btn.clicked.connect(self._import_entries)
+        start_layout.addWidget(self._start_entries_btn)
+        self._start_late_entries_btn = QPushButton("Lataa jälki-ilmoittautuneet…")
+        self._start_late_entries_btn.clicked.connect(self._import_late_entries)
+        start_layout.addWidget(self._start_late_entries_btn)
         self._start_build_btn = QPushButton("Toteuta lähtökaavio")
         self._start_build_btn.clicked.connect(self._build_schedule)
         start_layout.addWidget(self._start_build_btn)
@@ -445,6 +462,7 @@ class MainWindow(QMainWindow):
         )
         self._active_location_id = next(iter(self._competition.start_locations))
         self._project_path = None
+        self._has_competition = True
         self._reset_all_history()
         self._refresh_all()
         self._tabs.setCurrentWidget(self._start_page)
@@ -458,6 +476,7 @@ class MainWindow(QMainWindow):
             self._competition.ensure_default_start_location()
             self._active_location_id = next(iter(self._competition.start_locations))
             self._project_path = Path(path)
+            self._has_competition = True
             self._reset_all_history()
             self._refresh_all()
             self._land_after_load()
@@ -500,15 +519,8 @@ class MainWindow(QMainWindow):
             return
         try:
             competition = self._competition
-            for i, path in enumerate(paths):
-                if i == 0 and (
-                    not competition.courses and not competition.classes
-                ):
-                    competition = self._import_service.import_coursedata(path)
-                else:
-                    competition = self._import_service.import_coursedata(
-                        path, competition
-                    )
+            for path in paths:
+                competition = self._import_service.import_coursedata(path, competition)
             self._competition = competition
             self._active_location_id = next(iter(self._competition.start_locations))
             self._reset_all_history()
@@ -535,7 +547,7 @@ class MainWindow(QMainWindow):
         try:
             had_plan = bool(self._competition.plans)
             before = len(self._competition.competitors)
-            n = self._import_service.import_entries(self._competition, path)
+            n = self._import_service.import_entries(self._competition, path, late=late)
             self._refresh_all()
             self._status.showMessage(f"Tuotu {n} kilpailijaa", 4000)
             if had_plan and len(self._competition.competitors) > before:
@@ -904,18 +916,35 @@ class MainWindow(QMainWindow):
 
     def _refresh_start_page(self, ready: bool) -> None:
         c = self._competition
-        if c.courses or c.classes:
+        if not self._has_competition:
             self._start_course_status.setText(
-                f"✓ Ratatiedot ladattu ({len(c.courses)} rataa, {len(c.classes)} sarjaa)"
+                "Luo tai avaa kilpailu ensin (Tiedosto-valikko)."
             )
+            self._start_entries_status.setText("")
         else:
-            self._start_course_status.setText("Ratatietoja ei ole vielä ladattu.")
-        if c.competitors:
-            self._start_entries_status.setText(
-                f"✓ Ilmoittautumiset ladattu ({len(c.competitors)} kilpailijaa)"
-            )
-        else:
-            self._start_entries_status.setText("Ilmoittautumisia ei ole vielä ladattu.")
+            if c.courses or c.classes:
+                self._start_course_status.setText(
+                    f"✓ Ratatiedot ladattu ({len(c.courses)} rataa, {len(c.classes)} sarjaa)"
+                )
+            else:
+                self._start_course_status.setText("Ratatietoja ei ole vielä ladattu.")
+            if c.competitors:
+                total = len(c.competitors)
+                late_count = sum(1 for comp in c.competitors.values() if comp.late)
+                if late_count:
+                    self._start_entries_status.setText(
+                        f"✓ Ilmoittautumiset ladattu ({total} kilpailijaa, "
+                        f"joista {late_count} jälki-ilmoittautunutta)"
+                    )
+                else:
+                    self._start_entries_status.setText(
+                        f"✓ Ilmoittautumiset ladattu ({total} kilpailijaa)"
+                    )
+            else:
+                self._start_entries_status.setText("Ilmoittautumisia ei ole vielä ladattu.")
+        self._start_course_btn.setEnabled(self._has_competition)
+        self._start_entries_btn.setEnabled(self._has_competition)
+        self._start_late_entries_btn.setEnabled(self._has_competition)
         self._start_build_btn.setVisible(ready)
 
     def _apply_tab_gating(self, ready: bool) -> None:
@@ -925,6 +954,11 @@ class MainWindow(QMainWindow):
             self._tabs.setTabVisible(i, ready)
         if not ready and self._tabs.currentWidget() is not self._start_page:
             self._tabs.setCurrentWidget(self._start_page)
+        self._top_bar.setVisible(ready)
+
+    def _update_menu_availability(self) -> None:
+        self._competition_menu.menuAction().setEnabled(self._has_competition)
+        self._schedule_menu.menuAction().setEnabled(self._has_competition)
 
     def _refresh_all(self) -> None:
         self._competition.ensure_default_start_location()
@@ -943,6 +977,7 @@ class MainWindow(QMainWindow):
         self._refresh_plan_and_status()
         self._refresh_issues()
         self._update_history_actions()
+        self._update_menu_availability()
         self._apply_tab_gating(ready)
 
     def _refresh_locations_table(self) -> None:
@@ -1632,6 +1667,23 @@ class MainWindow(QMainWindow):
         ]
         self._fill_table(self._timeline_table, ["Aika", "Sarjat lähdössä"], rows)
 
+    @staticmethod
+    def _column_group_palette(n: int) -> list[QColor]:
+        """Pale background per distinct value (here: shared first control),
+        evenly spread across hues. Kept very light (high lightness, low
+        saturation) so it reads as a subtle column wash, not a highlight."""
+        if n <= 0:
+            return []
+        return [QColor.fromHsl(int(360 * i / n), 60, 245) for i in range(n)]
+
+    @staticmethod
+    def _class_color_palette(n: int) -> list[QColor]:
+        """Distinct, non-dark background per class, evenly spread across
+        hues — light enough to keep black text readable."""
+        if n <= 0:
+            return []
+        return [QColor.fromHsl(int(360 * i / n), 130, 205) for i in range(n)]
+
     def _refresh_course_grid(self, plan: ClassStartPlan | None) -> None:
         grid = build_course_grid(self._competition, plan)
         table = self._grid_table
@@ -1651,6 +1703,20 @@ class MainWindow(QMainWindow):
         table.setHorizontalHeaderLabels(headers)
         table.setRowCount(len(grid.minutes))
 
+        # Column background: same pale color for every column whose course
+        # shares a first control (helps spot start-order conflicts at a
+        # glance). Class background: one distinct, non-dark color per class,
+        # identical everywhere that class appears in the grid.
+        first_controls = sorted({col.first_control or "—" for col in grid.columns})
+        group_color = dict(
+            zip(first_controls, self._column_group_palette(len(first_controls)))
+        )
+        column_bg = {
+            col.course_id: group_color[col.first_control or "—"] for col in grid.columns
+        }
+        class_names = sorted({rc.name for rc in self._competition.classes.values()})
+        class_bg = dict(zip(class_names, self._class_color_palette(len(class_names))))
+
         readonly = Qt.ItemIsSelectable | Qt.ItemIsEnabled
         event_date = self._competition.event_date
         for row, minute in enumerate(grid.minutes):
@@ -1668,10 +1734,21 @@ class MainWindow(QMainWindow):
                 item = QTableWidgetItem(text)
                 item.setFlags(readonly)
                 item.setTextAlignment(Qt.AlignCenter)
+                # A cell can rarely hold "H21, D21" if two classes land on
+                # the same minute+control; color by the first name listed.
+                first_class = text.split(", ")[0] if text else None
+                item.setBackground(
+                    QBrush(class_bg.get(first_class, column_bg[col.course_id]))
+                )
                 table.setItem(row, col_idx, item)
 
         table.resizeColumnsToContents()
-        table.horizontalHeader().setStretchLastSection(True)
+        if grid.columns:
+            course_width = max(
+                table.columnWidth(i) for i in range(2, table.columnCount())
+            )
+            for i in range(2, table.columnCount()):
+                table.setColumnWidth(i, course_width)
         table.verticalHeader().setVisible(False)
 
     def _refresh_issues(self) -> None:

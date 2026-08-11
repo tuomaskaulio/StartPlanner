@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.9.5
+
+- Sovellukselle oma ikoni (Windows-exe, ikkuna/tehtäväpalkki/Dock ajon aikana, ja macOS Finder/Dock `.app`-nippuna)
+- macOS-paketointi tuottaa nyt allekirjoitetun `StartPlanner.app`-nipun; GitHub-julkaisut jakavat jatkossa tämän aiemman kansio+launch-skripti-yhdistelmän sijaan
+- Lisätty anonymisoitu `samples/sample-medium-large/` -esimerkkiaineisto
+
+## 0.9.4
+
+- Aloitus-välilehdelle uusi "Lataa jälki-ilmoittautuneet…" -painike, "Lataa ilmoittautumiset…" -painikkeen rinnalle
+- Kilpailijoille tallennetaan nyt pysyvä "jälki-ilmoittautunut"-tieto (säilyy `.spc`-tiedostossa); Aloitus-sivun tilasto näyttää erikseen kokonaismäärän ja siitä jälki-ilmoittautuneiden määrän
+
+## 0.9.3
+
+- Ruudukon viimeinen sarake ei enää veny muita ratasarakkeita leveämmäksi — kaikki ratasarakkeet ovat nyt samanlevyisiä
+- Ruudukkoon lisätty värit: sarakkeen tausta on sama kaikilla samalla 1. rastilla alkavilla radoilla (helpottaa lähtökonfliktien havaitsemista), ja jokaisella sarjalla on oma, koko ruudukon läpi identtinen, vaalea soluväri
+
+## 0.9.2
+
+- Korjattu bugi, jossa ratatietojen tuonti nollasi kilpailun asetukset (aloitusaika, oletuslähtöväli, sarjaväli), nimen ja päivämäärän oletusarvoihin — tuonti yhdistetään nyt aina olemassa olevaan kilpailuun, ei koskaan luo uutta tyhjää kilpailua tuonnin yhteydessä
+- Aloitus-välilehdelle uusi "Luo uusi kilpailu…" -painike; toisin kuin muut Aloitus-sivun painikkeet, se on aina käytettävissä
+- "Kilpailun asetukset…" siirretty Muokkaa-valikosta Kilpailu-valikkoon
+
+## 0.9.1
+
+- Uusi "Kilpailu"-päävalikko kokoaa tuontitoiminnot (ratatiedot, ilmoittautumiset, jälki-ilmoittautuneet), jotka olivat aiemmin Tiedosto-valikossa
+- Ennen kuin kilpailu on luotu ("Uusi") tai avattu ("Avaa .spc…"), Aloitus-sivun tuontipainikkeet sekä "Kilpailu"- ja "Lähtökaavio"-valikot (mm. "Lisää lähtö…") pysyvät ei-käytettävissä
+- Yläpalkin aktiivinen lähtö -alasvetovalikko piilotetaan Aloitus-näkymässä, koska se ei ole merkityksellinen ennen kuin lähtökaavio on käytettävissä
+
 ## 0.9.0
 
 - Uusi "Aloitus"-välilehti ohjaa uuden kilpailun perustamisen: ratatietojen tuonti, ilmoittautumisten tuonti ja lähtökaavion toteutus samalta sivulta
