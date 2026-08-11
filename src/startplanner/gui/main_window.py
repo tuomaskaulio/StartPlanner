@@ -182,6 +182,10 @@ class MainWindow(QMainWindow):
         self._competition.ensure_default_start_location()
         self._active_location_id = next(iter(self._competition.start_locations))
         self._project_path: Path | None = None
+        # True only once the user has explicitly created ("Uusi") or opened
+        # ("Avaa .spc…") a competition — the placeholder Competition above
+        # doesn't count, so import actions/menus stay locked until then.
+        self._has_competition: bool = False
         self._class_service = ClassService()
         self._competition_service = CompetitionService()
         self._import_service = ImportService()
@@ -227,23 +231,24 @@ class MainWindow(QMainWindow):
         file_menu.addAction("Tallenna", self._save_project)
         file_menu.addAction("Tallenna nimellä…", self._save_project_as)
         file_menu.addSeparator()
-        file_menu.addAction(
-            "Tuo ratatiedot (IOF CourseData 3.0, Condes)…",
-            self._import_coursedata,
-        )
-        file_menu.addAction(
-            "Tuo ilmoittautumiset (IRMA Pirilä)…",
-            self._import_entries,
-        )
-        file_menu.addAction(
-            "Tuo jälki-ilmoittautuneet (IRMA Pirilä)…",
-            self._import_late_entries,
-        )
-        file_menu.addSeparator()
         file_menu.addAction("Vie Excel…", self._export_excel)
         file_menu.addAction("Vie CSV…", self._export_csv)
         file_menu.addAction("Vie PDF…", self._export_pdf)
         file_menu.addAction("Vie ruudukko PDF…", self._export_grid_pdf)
+
+        self._competition_menu = menu.addMenu("Kilpailu")
+        self._competition_menu.addAction(
+            "Tuo ratatiedot (IOF CourseData 3.0, Condes)…",
+            self._import_coursedata,
+        )
+        self._competition_menu.addAction(
+            "Tuo ilmoittautumiset (IRMA Pirilä)…",
+            self._import_entries,
+        )
+        self._competition_menu.addAction(
+            "Tuo jälki-ilmoittautuneet (IRMA Pirilä)…",
+            self._import_late_entries,
+        )
 
         edit_menu = menu.addMenu("Muokkaa")
         self._undo_action = edit_menu.addAction("Kumoa", self._undo)
@@ -253,19 +258,25 @@ class MainWindow(QMainWindow):
         edit_menu.addSeparator()
         edit_menu.addAction("Kilpailun asetukset…", self._edit_settings)
 
-        schedule_menu = menu.addMenu("Lähtökaavio")
-        schedule_menu.addAction("Muodosta lähtökaavio (aktiivinen lähtö)", self._build_schedule)
-        schedule_menu.addAction("Päivitä lähtökaavio (aktiivinen lähtö)", self._update_schedule)
-        schedule_menu.addAction("Optimoi (aktiivinen lähtö)", self._optimize)
-        schedule_menu.addAction("Validoi", self._validate)
-        schedule_menu.addSeparator()
-        schedule_menu.addAction("Siirrä valittu sarja…", self._move_selected_class)
-        schedule_menu.addAction("Lukitse / avaa valittu sarja", self._toggle_lock_selected)
-        schedule_menu.addSeparator()
-        schedule_menu.addAction("Lisää lähtö…", self._add_start_location)
+        self._schedule_menu = menu.addMenu("Lähtökaavio")
+        self._schedule_menu.addAction(
+            "Muodosta lähtökaavio (aktiivinen lähtö)", self._build_schedule
+        )
+        self._schedule_menu.addAction(
+            "Päivitä lähtökaavio (aktiivinen lähtö)", self._update_schedule
+        )
+        self._schedule_menu.addAction("Optimoi (aktiivinen lähtö)", self._optimize)
+        self._schedule_menu.addAction("Validoi", self._validate)
+        self._schedule_menu.addSeparator()
+        self._schedule_menu.addAction("Siirrä valittu sarja…", self._move_selected_class)
+        self._schedule_menu.addAction(
+            "Lukitse / avaa valittu sarja", self._toggle_lock_selected
+        )
+        self._schedule_menu.addSeparator()
+        self._schedule_menu.addAction("Lisää lähtö…", self._add_start_location)
 
-        top = QWidget()
-        top_layout = QHBoxLayout(top)
+        self._top_bar = QWidget()
+        top_layout = QHBoxLayout(self._top_bar)
         top_layout.addWidget(QLabel("Aktiivinen lähtö:"))
         self._location_combo = QComboBox()
         self._location_combo.currentIndexChanged.connect(self._on_location_changed)
@@ -281,7 +292,7 @@ class MainWindow(QMainWindow):
 
         right = QWidget()
         right_layout = QVBoxLayout(right)
-        right_layout.addWidget(top)
+        right_layout.addWidget(self._top_bar)
         self._tabs = QTabWidget()
 
         self._start_page = QWidget()
@@ -295,14 +306,14 @@ class MainWindow(QMainWindow):
         )
         self._start_course_status = QLabel()
         start_layout.addWidget(self._start_course_status)
-        start_course_btn = QPushButton("Lataa ratatiedot…")
-        start_course_btn.clicked.connect(self._import_coursedata)
-        start_layout.addWidget(start_course_btn)
+        self._start_course_btn = QPushButton("Lataa ratatiedot…")
+        self._start_course_btn.clicked.connect(self._import_coursedata)
+        start_layout.addWidget(self._start_course_btn)
         self._start_entries_status = QLabel()
         start_layout.addWidget(self._start_entries_status)
-        start_entries_btn = QPushButton("Lataa ilmoittautumiset…")
-        start_entries_btn.clicked.connect(self._import_entries)
-        start_layout.addWidget(start_entries_btn)
+        self._start_entries_btn = QPushButton("Lataa ilmoittautumiset…")
+        self._start_entries_btn.clicked.connect(self._import_entries)
+        start_layout.addWidget(self._start_entries_btn)
         self._start_build_btn = QPushButton("Toteuta lähtökaavio")
         self._start_build_btn.clicked.connect(self._build_schedule)
         start_layout.addWidget(self._start_build_btn)
@@ -445,6 +456,7 @@ class MainWindow(QMainWindow):
         )
         self._active_location_id = next(iter(self._competition.start_locations))
         self._project_path = None
+        self._has_competition = True
         self._reset_all_history()
         self._refresh_all()
         self._tabs.setCurrentWidget(self._start_page)
@@ -458,6 +470,7 @@ class MainWindow(QMainWindow):
             self._competition.ensure_default_start_location()
             self._active_location_id = next(iter(self._competition.start_locations))
             self._project_path = Path(path)
+            self._has_competition = True
             self._reset_all_history()
             self._refresh_all()
             self._land_after_load()
@@ -904,18 +917,26 @@ class MainWindow(QMainWindow):
 
     def _refresh_start_page(self, ready: bool) -> None:
         c = self._competition
-        if c.courses or c.classes:
+        if not self._has_competition:
             self._start_course_status.setText(
-                f"✓ Ratatiedot ladattu ({len(c.courses)} rataa, {len(c.classes)} sarjaa)"
+                "Luo tai avaa kilpailu ensin (Tiedosto-valikko)."
             )
+            self._start_entries_status.setText("")
         else:
-            self._start_course_status.setText("Ratatietoja ei ole vielä ladattu.")
-        if c.competitors:
-            self._start_entries_status.setText(
-                f"✓ Ilmoittautumiset ladattu ({len(c.competitors)} kilpailijaa)"
-            )
-        else:
-            self._start_entries_status.setText("Ilmoittautumisia ei ole vielä ladattu.")
+            if c.courses or c.classes:
+                self._start_course_status.setText(
+                    f"✓ Ratatiedot ladattu ({len(c.courses)} rataa, {len(c.classes)} sarjaa)"
+                )
+            else:
+                self._start_course_status.setText("Ratatietoja ei ole vielä ladattu.")
+            if c.competitors:
+                self._start_entries_status.setText(
+                    f"✓ Ilmoittautumiset ladattu ({len(c.competitors)} kilpailijaa)"
+                )
+            else:
+                self._start_entries_status.setText("Ilmoittautumisia ei ole vielä ladattu.")
+        self._start_course_btn.setEnabled(self._has_competition)
+        self._start_entries_btn.setEnabled(self._has_competition)
         self._start_build_btn.setVisible(ready)
 
     def _apply_tab_gating(self, ready: bool) -> None:
@@ -925,6 +946,11 @@ class MainWindow(QMainWindow):
             self._tabs.setTabVisible(i, ready)
         if not ready and self._tabs.currentWidget() is not self._start_page:
             self._tabs.setCurrentWidget(self._start_page)
+        self._top_bar.setVisible(ready)
+
+    def _update_menu_availability(self) -> None:
+        self._competition_menu.menuAction().setEnabled(self._has_competition)
+        self._schedule_menu.menuAction().setEnabled(self._has_competition)
 
     def _refresh_all(self) -> None:
         self._competition.ensure_default_start_location()
@@ -943,6 +969,7 @@ class MainWindow(QMainWindow):
         self._refresh_plan_and_status()
         self._refresh_issues()
         self._update_history_actions()
+        self._update_menu_availability()
         self._apply_tab_gating(ready)
 
     def _refresh_locations_table(self) -> None:

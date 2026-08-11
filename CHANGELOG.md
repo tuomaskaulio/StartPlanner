@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.1
+
+- Uusi "Kilpailu"-päävalikko kokoaa tuontitoiminnot (ratatiedot, ilmoittautumiset, jälki-ilmoittautuneet), jotka olivat aiemmin Tiedosto-valikossa
+- Ennen kuin kilpailu on luotu ("Uusi") tai avattu ("Avaa .spc…"), Aloitus-sivun tuontipainikkeet sekä "Kilpailu"- ja "Lähtökaavio"-valikot (mm. "Lisää lähtö…") pysyvät ei-käytettävissä
+- Yläpalkin aktiivinen lähtö -alasvetovalikko piilotetaan Aloitus-näkymässä, koska se ei ole merkityksellinen ennen kuin lähtökaavio on käytettävissä
+
 ## 0.9.0
 
 - Uusi "Aloitus"-välilehti ohjaa uuden kilpailun perustamisen: ratatietojen tuonti, ilmoittautumisten tuonti ja lähtökaavion toteutus samalta sivulta

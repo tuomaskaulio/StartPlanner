@@ -52,16 +52,20 @@ Paikallinen PyInstaller-build: ks. [README](../README.md#asennuspaketit).
 
 ## Tyypillinen työnkulku
 
-1. **Uusi kilpailu** – dialogi kysyy kilpailun tiedot (nimi, aloitusaika,
-   lähtöväli, sarjaväli) kerralla. Sovellus avautuu **Aloitus**-välilehdelle.
+1. **Uusi kilpailu** (Tiedosto-valikko) – dialogi kysyy kilpailun tiedot
+   (nimi, aloitusaika, lähtöväli, sarjaväli) kerralla. Sovellus avautuu
+   **Aloitus**-välilehdelle. Ennen kuin kilpailu on luotu tai avattu
+   (**Avaa .spc…**), Aloitus-sivun tuontipainikkeet sekä **Kilpailu**- ja
+   **Lähtökaavio**-valikot pysyvät ei-käytettävissä.
 2. **Aloitus** – ohjaa perustamisen kahdella painikkeella:
    - **Lataa ratatiedot…** (Condes XML)
    - **Lataa ilmoittautumiset…** (IRMA Pirilä CSV)
-   Muut välilehdet (Sarjat, Lähdöt, Lähtökaavio, jne.) pysyvät piilossa
-   kunnes molemmat on ladattu — sama sääntö koskee myös vanhan `.spc`-projektin
-   avaamista, jos siitä puuttuu vielä ratatiedot tai ilmoittautumiset.
-   Kun molemmat on ladattu, Aloitukseen ilmestyy kolmas painike, **Toteuta
-   lähtökaavio**, ja kaikki muut välilehdet avautuvat.
+   Muut välilehdet (Sarjat, Lähdöt, Lähtökaavio, jne.) sekä yläpalkin
+   aktiivinen lähtö -valikko pysyvät piilossa kunnes molemmat on ladattu —
+   sama sääntö koskee myös vanhan `.spc`-projektin avaamista, jos siitä
+   puuttuu vielä ratatiedot tai ilmoittautumiset. Kun molemmat on ladattu,
+   Aloitukseen ilmestyy kolmas painike, **Toteuta lähtökaavio**, ja kaikki
+   muut välilehdet avautuvat.
 3. **Sarjat** – kytke puuttuvat sarjat radoihin; säädä lähtö ja lähtöväli.
    Sarjan (ja sen kilpailijat) voi poistaa oikealla klikkauksella.
 4. **Sarjajärjestys** – raahaa sarjoja haluttuun järjestykseen (näkyy kaaviossa).

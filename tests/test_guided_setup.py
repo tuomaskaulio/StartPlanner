@@ -1,9 +1,14 @@
-"""Ohjattu "Aloitus"-välilehti uuden kilpailun perustamiselle (v0.9.0).
+"""Ohjattu "Aloitus"-välilehti uuden kilpailun perustamiselle (v0.9.0 / v0.9.1).
 
 Muut välilehdet piilotetaan kunnes sekä ratatiedot että ilmoittautumiset on
 tuotu. Sääntö perustuu kilpailun tietoihin (ei siihen, onko projekti juuri
 luotu vai avattu) ja arvioidaan uudelleen joka päivityksellä — jos data
 myöhemmin tyhjenee, sovellus palaa Aloitukseen.
+
+v0.9.1 lisää toisen, heikomman portin: ennen kuin käyttäjä on nimenomaisesti
+luonut ("Uusi") tai avannut ("Avaa .spc…") kilpailun, Aloitus-sivun
+tuontipainikkeet sekä "Kilpailu"- ja "Lähtökaavio"-valikot pysyvät
+disabloituina, ja aktiivinen lähtö -yläpalkki piilossa kunnes data on valmis.
 """
 
 from __future__ import annotations
@@ -120,4 +125,71 @@ def test_bulk_clear_returns_to_aloitus(monkeypatch):
     window._clear_courses_and_classes()
 
     assert _visible_tab_labels(window) == {"Aloitus"}
+    assert window._tabs.currentWidget() is window._start_page
+
+
+# --- v0.9.1: has_competition-portti (ennen "Uusi"/"Avaa") -------------------
+
+
+def test_fresh_window_locks_imports_and_menus():
+    _qapp()
+    window = MainWindow()
+    assert window._has_competition is False
+    assert window._start_course_btn.isEnabled() is False
+    assert window._start_entries_btn.isEnabled() is False
+    assert window._competition_menu.menuAction().isEnabled() is False
+    assert window._schedule_menu.menuAction().isEnabled() is False
+    # Never shown (ready is False before a competition exists), so the
+    # top bar with the active-location dropdown is hidden too.
+    assert window._top_bar.isHidden()
+
+
+def test_has_competition_unlocks_import_buttons_and_menus():
+    _qapp()
+    window = MainWindow()
+    window._has_competition = True
+    window._refresh_all()
+    assert window._start_course_btn.isEnabled() is True
+    assert window._start_entries_btn.isEnabled() is True
+    assert window._competition_menu.menuAction().isEnabled() is True
+    assert window._schedule_menu.menuAction().isEnabled() is True
+    # Not yet ready (no courses/classes/competitors) -> top bar still hidden.
+    assert window._top_bar.isHidden()
+
+
+def test_top_bar_shown_once_ready():
+    _qapp()
+    window = MainWindow()
+    window._has_competition = True
+    loc = next(iter(window._competition.start_locations.values()))
+    course = Course(id="course:1", name="Rata 1", controls=["31"])
+    window._competition.add_course(course)
+    rc = RaceClass(id="class:1", name="H21", course_id=course.id, start_location_id=loc.id)
+    window._competition.add_class(rc)
+    window._competition.add_competitor(
+        Competitor(id="c1", first_name="A", last_name="B", class_id=rc.id)
+    )
+    window._refresh_all()
+    assert not window._top_bar.isHidden()
+
+
+def test_new_project_unlocks_menus_and_buttons(monkeypatch):
+    """Drives the real _new_project() code path by monkeypatching the modal
+    dialog's exec() to simulate the user accepting it with default values."""
+    from PySide6.QtWidgets import QDialog
+
+    from startplanner.gui.main_window import NewCompetitionDialog
+
+    _qapp()
+    window = MainWindow()
+    monkeypatch.setattr(
+        NewCompetitionDialog, "exec", lambda self: QDialog.DialogCode.Accepted
+    )
+    window._new_project()
+
+    assert window._has_competition is True
+    assert window._start_course_btn.isEnabled()
+    assert window._start_entries_btn.isEnabled()
+    assert window._competition_menu.menuAction().isEnabled()
+    assert window._schedule_menu.menuAction().isEnabled()
     assert window._tabs.currentWidget() is window._start_page
