@@ -4,6 +4,22 @@ Avoimen lähdekoodin työpöytäsovellus suunnistuskilpailujen lähtökaavioiden
 
 > **Huomioitavaa:** Ohjelma on kehitetty pääosin tekoälyn (Claude) avulla. Käyttö on omalla vastuulla — ohjelmalle ei anneta mitään takuita toimivuudesta tai virheettömyydestä, eikä sen tuottamia lähtökaavioita tule käyttää tarkistamatta niitä ennen kilpailua.
 
+## Lataa sovellus
+
+Uusin valmis versio ladataan täältä: **[github.com/tuomaskaulio/StartPlanner/releases/latest](https://github.com/tuomaskaulio/StartPlanner/releases/latest)**
+
+Avaa linkki, vieritä sivun alaosaan kohtaan **Assets** ja lataa oman käyttöjärjestelmäsi mukainen tiedosto:
+
+| Käyttöjärjestelmä | Ladattava tiedosto |
+| --- | --- |
+| Windows | `StartPlanner-Windows.zip` |
+| Mac (uudemmat, Apple Silicon / M-sarja) | `StartPlanner-macOS-ARM.zip` |
+| Mac (vanhemmat, Intel) | `StartPlanner-macOS-Intel.zip` |
+
+Pura ladattu zip-tiedosto ja käynnistä sovellus (Windowsissa `StartPlanner.exe`, Macissa `StartPlanner.app`). Sovellusta ei ole allekirjoitettu, joten käyttöjärjestelmä voi varoittaa tuntemattomasta kehittäjästä — ks. huomautus alla kohdassa [Asennuspaketit](#asennuspaketit).
+
+Alla olevat asennusohjeet (Python, `pip install`) ovat vaihtoehto niille, jotka haluavat ajaa sovelluksen lähdekoodista.
+
 ## Vaatimukset
 
 - Python ≥ 3.12
@@ -55,7 +71,9 @@ pip install -e ".[packaging]"
 ./packaging/build_windows.ps1
 ```
 
-Tuloste: `dist/StartPlanner/` (Windows) ja `dist/StartPlanner.app` (macOS, sis. Dock/Finder-ikonin). macOS voi varoittaa allekirjoittamattomasta sovelluksesta (Gatekeeper) — salli järjestelmäasetuksista tarvittaessa. GitHub Releases -paketeissa macOS on saatavilla sekä Apple Silicon (ARM) että Intel (x86-64) -arkkitehtuureille.
+Tuloste: `dist/StartPlanner/` (Windows) ja `dist/StartPlanner.app` (macOS, sis. Dock/Finder-ikonin). macOS voi varoittaa allekirjoittamattomasta sovelluksesta (Gatekeeper) — salli järjestelmäasetuksista tarvittaessa. Vastaavasti Windows Defender SmartScreen voi varoittaa tuntemattomasta julkaisijasta — valitse "Lisätietoja" → "Suorita silti".
+
+Valmiiksi rakennetut paketit löytyvät lataamatta koodia [GitHub Releasesista](https://github.com/tuomaskaulio/StartPlanner/releases/latest), macOS sekä Apple Silicon (ARM) että Intel (x86-64) -arkkitehtuureille.
 
 
 ## Testit
@@ -66,4 +84,4 @@ pytest
 
 ## Versio
 
-Nykyinen versio: **0.9.5**. Versiohistoria ja muutokset: [CHANGELOG.md](CHANGELOG.md).
+Nykyinen versio: **0.9.5**. Versiohistoria ja muutokset: [CHANGELOG.md](CHANGELOG.md). Kaikki julkaistut versiot ja lataukset: [GitHub Releases](https://github.com/tuomaskaulio/StartPlanner/releases).
