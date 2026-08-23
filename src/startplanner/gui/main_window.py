@@ -1,4 +1,4 @@
-"""PySide6 main window for ClassStartPlan workflow (v0.6)."""
+"""PySide6 main window for ClassStartPlan workflow."""
 
 from __future__ import annotations
 
@@ -6,6 +6,8 @@ from copy import deepcopy
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from uuid import uuid4
+
+from startplanner import __version__
 
 from PySide6.QtCore import QDate, Qt, QTime
 from PySide6.QtGui import QBrush, QColor
@@ -175,7 +177,7 @@ class NewCompetitionDialog(QDialog):
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("StartPlanner 0.6")
+        self.setWindowTitle(f"StartPlanner {__version__}")
         self.resize(1200, 750)
 
         self._competition = Competition(name="Uusi kilpailu")
