@@ -84,4 +84,4 @@ pytest
 
 ## Versio
 
-Nykyinen versio: **0.9.5**. Versiohistoria ja muutokset: [CHANGELOG.md](CHANGELOG.md). Kaikki julkaistut versiot ja lataukset: [GitHub Releases](https://github.com/tuomaskaulio/StartPlanner/releases).
+Nykyinen versio: **0.9.6**. Versiohistoria ja muutokset: [CHANGELOG.md](CHANGELOG.md). Kaikki julkaistut versiot ja lataukset: [GitHub Releases](https://github.com/tuomaskaulio/StartPlanner/releases).

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.6
+
+- Korjattu sovellusikkunan otsikko, joka näytti vanhentunutta versionumeroa "0.6" — näyttää nyt oikean, ajantasaisen versionumeron
+- README: uusi "Lataa sovellus" -osio opastaa ei-tekniset käyttäjät löytämään ja lataamaan oikean asennuspaketin GitHub Releasesista
+
 ## 0.9.5
 
 - Sovellukselle oma ikoni (Windows-exe, ikkuna/tehtäväpalkki/Dock ajon aikana, ja macOS Finder/Dock `.app`-nippuna)
